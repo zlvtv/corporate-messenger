@@ -1,0 +1,63 @@
+/* src/pages/Dashboard/Dashboard.module.css */
+.dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard__header {
+  background-color: var(--color-surface);
+  border-bottom: 1px solid #e2e8f0;
+  padding: var(--space-m) 0;
+}
+
+.dashboard__headerContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-m);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard__userInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+}
+
+.dashboard__main {
+  flex: 1;
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 var(--space-m);
+}
+
+.dashboard__sidebar {
+  width: 300px;
+  padding: var(--space-l) var(--space-m) var(--space-l) 0;
+  border-right: 1px solid #e2e8f0;
+}
+
+.dashboard__content {
+  flex: 1;
+  padding: var(--space-l);
+}
+
+.dashboard__welcome {
+  text-align: center;
+  max-width: 500px;
+  margin: 100px auto 0;
+}
+
+.dashboard__welcome h2 {
+  margin-bottom: var(--space-m);
+  color: var(--color-text);
+}
+
+.dashboard__welcome p {
+  color: var(--color-text-light);
+  margin-bottom: var(--space-s);
+}

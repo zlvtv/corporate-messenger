@@ -1,0 +1,50 @@
+/* src/components/ui/Input/Input.module.css */
+.input {
+  width: 100%;
+  padding: var(--space-s) var(--space-m);
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  font-size: 14px;
+  transition: all 0.2s ease-in-out;
+  background-color: var(--color-surface);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input:disabled {
+  background-color: #f8fafc;
+  color: var(--color-text-light);
+  cursor: not-allowed;
+}
+
+.input::placeholder {
+  color: var(--color-text-light);
+}
+
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-surface) inset !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  border: 1px solid #e2e8f0 !important;
+  
+  box-shadow: none !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--color-surface) inset !important;
+  
+  transition: all 0.2s ease-in-out !important;
+  font-size: 14px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
+}
+
+.input:-webkit-autofill:focus {
+  border: 1px solid var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important; 
+  -webkit-box-shadow: 
+    0 0 0 3px rgba(37, 99, 235, 0.1),
+    0 0 0px 1000px var(--color-surface) inset !important;
+}

@@ -15,7 +15,6 @@ const Button: React.FC<ButtonProps> = ({
   variant = 'primary',
   onClick,
 }) => {
-  // Формируем className по БЭМ. `styles.button` - это блок.
   // `styles[`button--${variant}`]` - это модификатор.
   const buttonClass = `${styles.button} ${styles[`button--${variant}`]}`;
 
