@@ -1,14 +1,66 @@
-// src/components/organization/OrganizationContent/OrganizationContent.tsx
-import React from 'react';
+// OrganizationContent.tsx
+import React, { useState } from 'react';
 import { useOrganization } from '../../../context/OrganizationContext';
 import styles from './OrganizationContent.module.css';
 
 const OrganizationContent: React.FC = () => {
-  const { currentOrganization } = useOrganization();
+  const { 
+    currentOrganization, 
+    regenerateInviteCode, 
+    deactivateInviteCode 
+  } = useOrganization();
+  const [isManagingInvite, setIsManagingInvite] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!currentOrganization) {
     return null;
   }
+
+  const getInviteCodeStatus = () => {
+    if (!currentOrganization.is_invite_code_active) {
+      return { status: 'deactivated', label: 'Deactivated', color: '#ef4444' };
+    }
+    if (new Date(currentOrganization.invite_code_expires_at) < new Date()) {
+      return { status: 'expired', label: 'Expired', color: '#f59e0b' };
+    }
+    return { status: 'active', label: 'Active', color: '#10b981' };
+  };
+
+  const codeStatus = getInviteCodeStatus();
+
+  const handleRegenerateCode = async () => {
+    setIsLoading(true);
+    try {
+      await regenerateInviteCode(currentOrganization.id);
+      setIsManagingInvite(false);
+    } catch (error) {
+      console.error('Error regenerating code:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeactivateCode = async () => {
+    setIsLoading(true);
+    try {
+      await deactivateInviteCode(currentOrganization.id);
+      setIsManagingInvite(false);
+    } catch (error) {
+      console.error('Error deactivating code:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatExpirationDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <div className={styles.content}>
@@ -21,9 +73,53 @@ const OrganizationContent: React.FC = () => {
             </p>
           )}
           <div className={styles.content__meta}>
-            <span className={styles.content__inviteCode}>
-              Invite Code: <strong>{currentOrganization.invite_code}</strong>
-            </span>
+            <div className={styles.content__inviteSection}>
+              <div className={styles.content__inviteCode}>
+                <span className={styles.inviteCode__label}>Invite Code:</span>
+                <strong className={styles.inviteCode__value}>
+                  {currentOrganization.invite_code}
+                </strong>
+                <span 
+                  className={styles.inviteCode__status}
+                  style={{ backgroundColor: codeStatus.color }}
+                >
+                  {codeStatus.label}
+                </span>
+                <button 
+                  className={styles.inviteCode__manageButton}
+                  onClick={() => setIsManagingInvite(!isManagingInvite)}
+                  disabled={isLoading}
+                >
+                  {isManagingInvite ? 'Cancel' : 'Manage'}
+                </button>
+              </div>
+              
+              {isManagingInvite && (
+                <div className={styles.inviteManagement}>
+                  <div className={styles.inviteManagement__info}>
+                    <p>Generated: {formatExpirationDate(currentOrganization.invite_code_generated_at)}</p>
+                    <p>Expires: {formatExpirationDate(currentOrganization.invite_code_expires_at)}</p>
+                  </div>
+                  <div className={styles.inviteManagement__actions}>
+                    <button 
+                      className={`${styles.button} ${styles.buttonSecondary}`}
+                      onClick={handleRegenerateCode}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? 'Generating...' : 'Generate New Code'}
+                    </button>
+                    <button 
+                      className={`${styles.button} ${styles.buttonDanger}`}
+                      onClick={handleDeactivateCode}
+                      disabled={isLoading || !currentOrganization.is_invite_code_active}
+                    >
+                      Deactivate Code
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <span className={styles.content__memberCount}>
               {currentOrganization.organization_members?.length || 0} members
             </span>

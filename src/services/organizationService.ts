@@ -3,74 +3,107 @@ import { supabase } from '../lib/supabase';
 import { Organization, OrganizationWithMembers, CreateOrganizationData, OrganizationMember } from '../types/organization.types';
 
 export const organizationService = {
-  // Создание новой организации
+   async getUserOrganizations(): Promise<OrganizationWithMembers[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    try {
+      // Используем RPC функцию для получения всех данных
+      const { data: organizations, error } = await supabase.rpc('get_user_organizations_with_members');
+
+      if (error) {
+        console.error('RPC error:', error);
+        return [];
+      }
+
+      if (!organizations || organizations.length === 0) {
+        return [];
+      }
+
+      console.log('Found organizations with members:', organizations.length);
+      
+      // Преобразуем JSON[] в наш тип
+      return organizations as OrganizationWithMembers[];
+
+    } catch (error) {
+      console.error('Error in getUserOrganizations:', error);
+      return [];
+    }
+  },
+
+  async joinOrganization(inviteCode: string): Promise<string> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    try {
+      const cleanInviteCode = inviteCode.trim().toUpperCase();
+      console.log('Joining with invite code:', cleanInviteCode);
+
+      const { data: organizationId, error: joinError } = await supabase.rpc(
+        'join_organization_by_invite',
+        { p_invite_code: cleanInviteCode }
+      );
+
+      if (joinError) throw joinError;
+      if (!organizationId) throw new Error('Failed to join organization');
+
+      console.log('Successfully joined organization ID:', organizationId);
+      return organizationId;
+
+    } catch (error) {
+      console.error('Error in joinOrganization:', error);
+      throw error;
+    }
+  },
+
   async createOrganization(data: CreateOrganizationData): Promise<Organization> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { data: organization, error } = await supabase
-      .from('organizations')
-      .insert([
+    try {
+      // Используем RPC функцию для создания
+      const { data: organizationId, error: rpcError } = await supabase.rpc(
+        'create_organization_with_owner',
         {
-          ...data,
-          created_by: user.id,
+          org_name: data.name,
+          org_description: data.description || null
         }
-      ])
-      .select()
-      .single();
+      );
 
-    if (error) throw error;
+      if (rpcError) throw rpcError;
+      if (!organizationId) throw new Error('Organization creation failed');
 
-    // Автоматически добавляем создателя как владельца
-    await this.addMember(organization.id, user.id, 'owner');
+      // Получаем созданную организацию
+      const { data: organization, error: fetchError } = await supabase
+        .from('organizations')
+        .select('id, name, description, invite_code, created_by, created_at, updated_at')
+        .eq('id', organizationId)
+        .single();
 
-    return organization;
-  },
+      if (fetchError) {
+        console.error('Error fetching created organization:', fetchError);
+        // Но организация создана! Возвращаем базовые данные
+        return {
+          id: organizationId,
+          name: data.name,
+          description: data.description,
+          invite_code: 'GENERATED',
+          created_by: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          organization_members: []
+        } as Organization;
+      }
 
-  // Получение организаций пользователя
-  async getUserOrganizations(): Promise<OrganizationWithMembers[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+      return {
+        ...organization,
+        organization_members: []
+      };
 
-    const { data, error } = await supabase
-      .from('organizations')
-      .select(`
-        *,
-        organization_members (
-          *,
-          profiles (
-            username,
-            email,
-            full_name
-          )
-        )
-      `)
-      .eq('organization_members.user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  },
-
-  // Вступление в организацию по коду приглашения
-  async joinOrganization(inviteCode: string): Promise<Organization> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    // Находим организацию по коду
-    const { data: organization, error: orgError } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('invite_code', inviteCode.toUpperCase())
-      .single();
-
-    if (orgError) throw new Error('Organization not found');
-    if (!organization) throw new Error('Invalid invite code');
-
-    // Добавляем пользователя как участника
-    await this.addMember(organization.id, user.id, 'member');
-
-    return organization;
+    } catch (error) {
+      console.error('Error in createOrganization:', error);
+      throw error;
+    }
   },
 
   // Добавление участника в организацию
@@ -125,5 +158,34 @@ export const organizationService = {
       .single();
 
     return !!data && !error;
+  },
+
+  async regenerateInviteCode(organizationId: string): Promise<string> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: newInviteCode, error } = await supabase.rpc(
+      'regenerate_invite_code',
+      { org_id: organizationId }
+    );
+
+    if (error) throw error;
+    return newInviteCode;
+  },
+
+  async deactivateInviteCode(organizationId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('organizations')
+      .update({ 
+        is_invite_code_active: false,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', organizationId)
+      .eq('created_by', user.id); // Только владелец может деактивировать
+
+    if (error) throw error;
   }
 };

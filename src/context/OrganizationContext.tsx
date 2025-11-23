@@ -40,6 +40,27 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const regenerateInviteCode = async (organizationId: string): Promise<string> => {
+  try {
+    const newCode = await organizationService.regenerateInviteCode(organizationId);
+    await loadOrganizations(); // Обновляем список
+    return newCode;
+  } catch (error) {
+    console.error('Error regenerating invite code:', error);
+    throw error;
+  }
+};
+
+const deactivateInviteCode = async (organizationId: string): Promise<void> => {
+  try {
+    await organizationService.deactivateInviteCode(organizationId);
+    await loadOrganizations(); // Обновляем список
+  } catch (error) {
+    console.error('Error deactivating invite code:', error);
+    throw error;
+  }
+};
+
   useEffect(() => {
     loadOrganizations();
   }, []);
@@ -54,15 +75,22 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
-  const joinOrganization = async (inviteCode: string) => {
-    try {
-      setError(null);
-      await organizationService.joinOrganization(inviteCode);
-      await loadOrganizations(); // Перезагружаем список организаций
-    } catch (err) {
-      throw err;
-    }
-  };
+  const joinOrganization = async (inviteCode: string): Promise<string> => {
+  try {
+    // Возвращаем ID присоединенной организации
+    const organizationId = await organizationService.joinOrganization(inviteCode);
+    
+    // Обновляем список организаций
+    await loadOrganizations();
+    
+    // Возвращаем ID для установки фокуса
+    return organizationId;
+  } catch (error) {
+    console.error('Error joining organization:', error);
+    throw error;
+  }
+
+};
 
   const refreshOrganizations = async () => {
     await loadOrganizations();
@@ -76,6 +104,8 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     createOrganization,
     joinOrganization,
     setCurrentOrganization,
+    regenerateInviteCode, // ← Добавьте это
+    deactivateInviteCode,
     refreshOrganizations,
   };
 

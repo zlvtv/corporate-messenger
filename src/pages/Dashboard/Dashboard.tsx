@@ -23,45 +23,91 @@ const DashboardContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleCreateOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orgName.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await createOrganization({
-        name: orgName.trim(),
-        description: orgDescription.trim() || undefined,
-      });
-      setOrgName('');
-      setOrgDescription('');
-      setIsCreateModalOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create organization');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleOpenCreateModal = () => {
+    setError(null); // Сбрасываем ошибку
+    setIsCreateModalOpen(true);
   };
 
-  const handleJoinOrganization = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inviteCode.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await joinOrganization(inviteCode.trim());
-      setInviteCode('');
-      setIsJoinModalOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to join organization');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleOpenJoinModal = () => {
+    setError(null); // Сбрасываем ошибку
+    setInviteCode(''); // Сбрасываем код
+    setIsJoinModalOpen(true);
   };
+
+  const handleCloseCreateModal = () => {
+    setError(null);
+    setOrgName('');
+    setOrgDescription('');
+    setIsCreateModalOpen(false);
+  };
+
+  const handleCloseJoinModal = () => {
+    setError(null);
+    setInviteCode('');
+    setIsJoinModalOpen(false);
+  };
+
+const handleCreateOrganization = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!orgName.trim()) return;
+
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    console.log('Creating organization:', { name: orgName.trim(), description: orgDescription.trim() });
+    await createOrganization({
+      name: orgName.trim(),
+      description: orgDescription.trim() || undefined,
+    });
+    console.log('Organization created successfully');
+    setOrgName('');
+    setOrgDescription('');
+    setIsCreateModalOpen(false);
+  } catch (err) {
+    console.error('Error creating organization:', err);
+    setError(err instanceof Error ? err.message : 'Failed to create organization');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+const handleJoinOrganization = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  const cleanInviteCode = inviteCode.trim().toUpperCase();
+  
+  if (!cleanInviteCode) {
+    setError('Please enter an invite code');
+    return;
+  }
+
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    const joinedOrganizationId = await joinOrganization(cleanInviteCode);
+    setInviteCode('');
+    setIsJoinModalOpen(false);
+    
+    // Ждем немного и обновляем организации
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await refreshOrganizations();
+    
+    // Находим и выбираем присоединенную организацию
+    const joinedOrg = organizations.find(org => org.id === joinedOrganizationId);
+    if (joinedOrg) {
+      setCurrentOrganization(joinedOrg);
+      console.log('Auto-selected organization:', joinedOrg.name);
+    }
+    
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Failed to join organization';
+    setError(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleSignOut = async () => {
     try {
@@ -91,8 +137,8 @@ const DashboardContent: React.FC = () => {
       
       <main className={styles.dashboard__main}>
         <OrganizationSidebar 
-          onOpenCreateModal={() => setIsCreateModalOpen(true)}
-          onOpenJoinModal={() => setIsJoinModalOpen(true)}
+          onOpenCreateModal={handleOpenCreateModal}
+          onOpenJoinModal={handleOpenJoinModal}
         />
         
         <div className={styles.dashboard__content}>
@@ -124,7 +170,7 @@ const DashboardContent: React.FC = () => {
       {/* Модальное окно создания организации */}
       <Modal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={handleCloseCreateModal}
         title="Create New Organization"
         size="medium"
       >
@@ -184,9 +230,9 @@ const DashboardContent: React.FC = () => {
       </Modal>
 
       {/* Модальное окно вступления в организацию */}
-      <Modal
+     <Modal
         isOpen={isJoinModalOpen}
-        onClose={() => setIsJoinModalOpen(false)}
+        onClose={handleCloseJoinModal}
         title="Join Organization"
         size="small"
       >
