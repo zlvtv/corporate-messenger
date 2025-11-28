@@ -217,3 +217,127 @@
   color: var(--color-text-light);
   line-height: 1.5;
 }
+
+/* Добавьте в OrganizationContent.module.css */
+.inviteCode__restricted {
+  background-color: #f8fafc;
+  padding: var(--space-s);
+  border-radius: var(--border-radius);
+  border: 1px solid #e2e8f0;
+  color: var(--color-text-light);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-s);
+}
+
+.inviteManagement__note {
+  font-size: 12px;
+  color: #f59e0b;
+  font-style: italic;
+  margin-top: var(--space-s);
+}
+
+/* Строка с заголовком и кнопкой удаления */
+.content__titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-m);
+  margin-bottom: var(--space-s);
+}
+
+.deleteOrganizationButton {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: var(--space-xs);
+  border-radius: var(--border-radius);
+  transition: background-color 0.2s;
+}
+
+.deleteOrganizationButton:hover {
+  background-color: #fee2e2;
+}
+
+/* Модальное окно подтверждения удаления */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.deleteModal {
+  background: white;
+  padding: var(--space-xl);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-medium);
+  max-width: 400px;
+  width: 90%;
+}
+
+.deleteModal h3 {
+  margin: 0 0 var(--space-m) 0;
+  color: var(--color-text);
+}
+
+.deleteModal p {
+  margin: 0 0 var(--space-m) 0;
+  color: var(--color-text-light);
+  line-height: 1.5;
+}
+
+.deleteWarning {
+  color: #dc2626 !important;
+  font-size: 14px;
+  background-color: #fef2f2;
+  padding: var(--space-s);
+  border-radius: var(--border-radius);
+  border-left: 4px solid #dc2626;
+}
+
+.deleteModalActions {
+  display: flex;
+  gap: var(--space-s);
+  justify-content: flex-end;
+  margin-top: var(--space-l);
+}
+
+.cancelButton {
+  padding: var(--space-s) var(--space-m);
+  border: 1px solid #d1d5db;
+  background: white;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.confirmDeleteButton {
+  padding: var(--space-s) var(--space-m);
+  border: none;
+  background: #dc2626;
+  color: white;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.confirmDeleteButton:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.confirmDeleteButton:disabled {
+  background: #fca5a5;
+  cursor: not-allowed;
+}

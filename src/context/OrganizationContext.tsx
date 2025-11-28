@@ -1,7 +1,7 @@
 // src/contexts/OrganizationContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { organizationService } from '../services/organizationService';
-import { Organization, OrganizationWithMembers, CreateOrganizationData } from '../types/organization.types';
+import { OrganizationWithMembers, CreateOrganizationData } from '../types/organization.types';
 
 interface OrganizationContextType {
   organizations: OrganizationWithMembers[];
@@ -12,6 +12,10 @@ interface OrganizationContextType {
   joinOrganization: (inviteCode: string) => Promise<void>;
   setCurrentOrganization: (org: OrganizationWithMembers | null) => void;
   refreshOrganizations: () => Promise<void>;
+  refreshCurrentOrganization: () => Promise<void>; 
+  regenerateInviteCode: (organizationId: string) => Promise<string>;
+  deactivateInviteCode: (organizationId: string) => Promise<void>;
+  deleteOrganization: (organizationId: string) => Promise<void>;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
@@ -29,37 +33,53 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const userOrganizations = await organizationService.getUserOrganizations();
       setOrganizations(userOrganizations);
       
-      // Автоматически выбираем первую организацию, если нет текущей
-      if (userOrganizations.length > 0 && !currentOrganization) {
+      if (currentOrganization) {
+        const updatedCurrentOrg = userOrganizations.find(org => org.id === currentOrganization.id);
+        if (updatedCurrentOrg) {
+          setCurrentOrganization(updatedCurrentOrg);
+        }
+      } else if (userOrganizations.length > 0) {
         setCurrentOrganization(userOrganizations[0]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load organizations');
+      setError(err instanceof Error ? err.message : 'Ошибка загрузки организаций');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const regenerateInviteCode = async (organizationId: string): Promise<string> => {
-  try {
-    const newCode = await organizationService.regenerateInviteCode(organizationId);
-    await loadOrganizations(); // Обновляем список
-    return newCode;
-  } catch (error) {
-    console.error('Error regenerating invite code:', error);
-    throw error;
-  }
-};
+  const refreshCurrentOrganization = async (): Promise<void> => {
+    if (!currentOrganization) return;
+    
+    try {
+      const userOrganizations = await organizationService.getUserOrganizations();
+      const updatedOrg = userOrganizations.find(org => org.id === currentOrganization.id);
+      if (updatedOrg) {
+        setCurrentOrganization(updatedOrg);
+      }
+    } catch (err) {
+      console.error('Ошибка обновления текущей организации:', err);
+    }
+  };
 
-const deactivateInviteCode = async (organizationId: string): Promise<void> => {
-  try {
-    await organizationService.deactivateInviteCode(organizationId);
-    await loadOrganizations(); // Обновляем список
-  } catch (error) {
-    console.error('Error deactivating invite code:', error);
-    throw error;
-  }
-};
+  const regenerateInviteCode = async (organizationId: string): Promise<string> => {
+    try {
+      const newCode = await organizationService.regenerateInviteCode(organizationId);
+      await refreshCurrentOrganization(); 
+      return newCode;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const deactivateInviteCode = async (organizationId: string): Promise<void> => {
+    try {
+      await organizationService.deactivateInviteCode(organizationId);
+      await refreshCurrentOrganization(); 
+    } catch (error) {
+      throw error;
+    }
+  };
 
   useEffect(() => {
     loadOrganizations();
@@ -69,28 +89,33 @@ const deactivateInviteCode = async (organizationId: string): Promise<void> => {
     try {
       setError(null);
       await organizationService.createOrganization(data);
-      await loadOrganizations(); // Перезагружаем список организаций
+      await loadOrganizations();
     } catch (err) {
       throw err;
     }
   };
 
-  const joinOrganization = async (inviteCode: string): Promise<string> => {
-  try {
-    // Возвращаем ID присоединенной организации
-    const organizationId = await organizationService.joinOrganization(inviteCode);
-    
-    // Обновляем список организаций
-    await loadOrganizations();
-    
-    // Возвращаем ID для установки фокуса
-    return organizationId;
-  } catch (error) {
-    console.error('Error joining organization:', error);
-    throw error;
-  }
+  const deleteOrganization = async (organizationId: string): Promise<void> => {
+    try {
+      await organizationService.deleteOrganization(organizationId);
+      await loadOrganizations();
+      if (currentOrganization?.id === organizationId) {
+        setCurrentOrganization(null);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
 
-};
+  const joinOrganization = async (inviteCode: string): Promise<string> => {
+    try {
+      const organizationId = await organizationService.joinOrganization(inviteCode);
+      await loadOrganizations();
+      return organizationId;
+    } catch (error) {
+      throw error;
+    }
+  };
 
   const refreshOrganizations = async () => {
     await loadOrganizations();
@@ -104,9 +129,11 @@ const deactivateInviteCode = async (organizationId: string): Promise<void> => {
     createOrganization,
     joinOrganization,
     setCurrentOrganization,
-    regenerateInviteCode, // ← Добавьте это
-    deactivateInviteCode,
     refreshOrganizations,
+    refreshCurrentOrganization, 
+    regenerateInviteCode, 
+    deactivateInviteCode,
+    deleteOrganization,
   };
 
   return (
@@ -119,7 +146,7 @@ const deactivateInviteCode = async (organizationId: string): Promise<void> => {
 export const useOrganization = () => {
   const context = useContext(OrganizationContext);
   if (context === undefined) {
-    throw new Error('useOrganization must be used within an OrganizationProvider');
+    throw new Error('useOrganization должен использоваться внутри OrganizationProvider');
   }
   return context;
 };

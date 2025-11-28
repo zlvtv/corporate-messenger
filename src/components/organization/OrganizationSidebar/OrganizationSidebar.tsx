@@ -9,6 +9,12 @@ interface OrganizationSidebarProps {
   onOpenJoinModal: () => void;
 }
 
+const getMembersText = (count: number): string => {
+  if (count === 1) return '1 участник';
+  if (count >= 2 && count <= 4) return `${count} участника`;
+  return `${count} участников`;
+};
+
 const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   onOpenCreateModal,
   onOpenJoinModal,
@@ -18,7 +24,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   if (isLoading) {
     return (
       <div className={styles.sidebar}>
-        <div className={styles.sidebar__loading}>Loading organizations...</div>
+        <div className={styles.sidebar__loading}>Загрузка организаций...</div>
       </div>
     );
   }
@@ -26,7 +32,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   return (
     <div className={styles.sidebar}>
       <div className={styles.sidebar__header}>
-        <h2 className={styles.sidebar__title}>Organizations</h2>
+        <h2 className={styles.sidebar__title}>Организации</h2>
         <div className={styles.sidebar__actions}>
           <Button
             variant="primary"
@@ -34,7 +40,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
             className={styles.sidebar__button}
             size="small"
           >
-            New
+            Создать
           </Button>
           <Button
             variant="secondary"
@@ -42,7 +48,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
             className={styles.sidebar__button}
             size="small"
           >
-            Join
+            Вступить
           </Button>
         </div>
       </div>
@@ -50,9 +56,9 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
       <div className={styles.sidebar__content}>
         {organizations.length === 0 ? (
           <div className={styles.sidebar__empty}>
-            <p>No organizations yet</p>
+            <p>Нет организаций</p>
             <p className={styles.sidebar__emptyHint}>
-              Create your first organization or join an existing one
+              Создайте свою первую организацию или вступите в существующую
             </p>
           </div>
         ) : (
@@ -73,7 +79,7 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
                     {org.name}
                   </div>
                   <div className={styles.organizationItem__members}>
-                    {org.organization_members?.length || 0} members
+                    {getMembersText(org.organization_members?.length || 0)}
                   </div>
                 </div>
               </div>

@@ -13,7 +13,7 @@ import styles from './Dashboard.module.css';
 const DashboardContent: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { organizations, currentOrganization, createOrganization, joinOrganization } = useOrganization();
+  const { organizations, currentOrganization, createOrganization, joinOrganization, setCurrentOrganization, refreshOrganizations } = useOrganization();
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -23,14 +23,34 @@ const DashboardContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasOrganizations = organizations && organizations.length > 0;
+
+  const getWelcomeMessage = () => {
+    if (hasOrganizations) {
+      return {
+        title: "С возвращением в TeamBridge!",
+        description: "Выберите организацию из списка слева или создайте новую для продолжения работы.",
+        showActionButtons: false
+      };
+    } else {
+      return {
+        title: "Добро пожаловать в TeamBridge!",
+        description: "Создайте свою первую организацию или присоединитесь к существующей для начала работы.",
+        showActionButtons: true
+      };
+    }
+  };
+
+  const welcomeData = getWelcomeMessage();
+
   const handleOpenCreateModal = () => {
-    setError(null); // Сбрасываем ошибку
+    setError(null);
     setIsCreateModalOpen(true);
   };
 
   const handleOpenJoinModal = () => {
-    setError(null); // Сбрасываем ошибку
-    setInviteCode(''); // Сбрасываем код
+    setError(null);
+    setInviteCode('');
     setIsJoinModalOpen(true);
   };
 
@@ -47,75 +67,67 @@ const DashboardContent: React.FC = () => {
     setIsJoinModalOpen(false);
   };
 
-const handleCreateOrganization = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!orgName.trim()) return;
+  const handleCreateOrganization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orgName.trim()) return;
 
-  setIsLoading(true);
-  setError(null);
+    setIsLoading(true);
+    setError(null);
 
-  try {
-    console.log('Creating organization:', { name: orgName.trim(), description: orgDescription.trim() });
-    await createOrganization({
-      name: orgName.trim(),
-      description: orgDescription.trim() || undefined,
-    });
-    console.log('Organization created successfully');
-    setOrgName('');
-    setOrgDescription('');
-    setIsCreateModalOpen(false);
-  } catch (err) {
-    console.error('Error creating organization:', err);
-    setError(err instanceof Error ? err.message : 'Failed to create organization');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-const handleJoinOrganization = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  const cleanInviteCode = inviteCode.trim().toUpperCase();
-  
-  if (!cleanInviteCode) {
-    setError('Please enter an invite code');
-    return;
-  }
-
-  setIsLoading(true);
-  setError(null);
-
-  try {
-    const joinedOrganizationId = await joinOrganization(cleanInviteCode);
-    setInviteCode('');
-    setIsJoinModalOpen(false);
-    
-    // Ждем немного и обновляем организации
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await refreshOrganizations();
-    
-    // Находим и выбираем присоединенную организацию
-    const joinedOrg = organizations.find(org => org.id === joinedOrganizationId);
-    if (joinedOrg) {
-      setCurrentOrganization(joinedOrg);
-      console.log('Auto-selected organization:', joinedOrg.name);
+    try {
+      await createOrganization({
+        name: orgName.trim(),
+        description: orgDescription.trim() || undefined,
+      });
+      setOrgName('');
+      setOrgDescription('');
+      setIsCreateModalOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка создания организации');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleJoinOrganization = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Failed to join organization';
-    setError(errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    const cleanInviteCode = inviteCode.trim().toUpperCase();
+    
+    if (!cleanInviteCode) {
+      setError('Введите код приглашения');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const joinedOrganizationId = await joinOrganization(cleanInviteCode);
+      setInviteCode('');
+      setIsJoinModalOpen(false);
+      
+      await refreshOrganizations();
+      
+      const joinedOrg = organizations.find(org => org.id === joinedOrganizationId);
+      if (joinedOrg) {
+        setCurrentOrganization(joinedOrg);
+      }
+      
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка вступления в организацию';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      // Принудительная навигация на логин после выхода
       navigate('/login', { replace: true });
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Ошибка выхода:', error);
     }
   };
 
@@ -123,13 +135,13 @@ const handleJoinOrganization = async (e: React.FormEvent) => {
     <div className={styles.dashboard}>
       <header className={styles.dashboard__header}>
         <div className={styles.dashboard__headerContent}>
-          <h1 className={styles.dashboard__title}>Corporate Messenger</h1>
+          <h1 className={styles.dashboard__title}>TeamBridge</h1>
           <div className={styles.dashboard__userInfo}>
             <span className={styles.dashboard__userName}>
               {user?.username || user?.email}
             </span>
             <Button variant="secondary" onClick={handleSignOut}>
-              Sign Out
+              Выйти
             </Button>
           </div>
         </div>
@@ -146,43 +158,51 @@ const handleJoinOrganization = async (e: React.FormEvent) => {
             <OrganizationContent />
           ) : (
             <div className={styles.dashboard__welcome}>
-              <h2>Welcome to Corporate Messenger!</h2>
-              <p>Create your first organization or join an existing one to get started.</p>
-              <div className={styles.dashboard__actionButtons}>
-                <Button 
-                  variant="primary" 
-                  onClick={() => setIsCreateModalOpen(true)}
-                >
-                  Create Organization
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  onClick={() => setIsJoinModalOpen(true)}
-                >
-                  Join Organization
-                </Button>
-              </div>
+              <h2>{welcomeData.title}</h2>
+              <p>{welcomeData.description}</p>
+              
+              {welcomeData.showActionButtons && (
+                <div className={styles.dashboard__actionButtons}>
+                  <Button 
+                    variant="primary" 
+                    onClick={handleOpenCreateModal}
+                  >
+                    Создать организацию
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    onClick={handleOpenJoinModal}
+                  >
+                    Присоединиться к организации
+                  </Button>
+                </div>
+              )}
+              
+              {hasOrganizations && (
+                <div className={styles.dashboard__hint}>
+                  <p><strong>Совет:</strong> Выберите организацию из списка слева, чтобы начать общение и управление задачами.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
       </main>
 
-      {/* Модальное окно создания организации */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={handleCloseCreateModal}
-        title="Create New Organization"
+        title="Создать организацию"
         size="medium"
       >
         <form onSubmit={handleCreateOrganization} className={styles.modalForm}>
           <div className={styles.formGroup}>
             <label htmlFor="orgName" className={styles.formLabel}>
-              Organization Name *
+              Название организации *
             </label>
             <Input
               id="orgName"
               type="text"
-              placeholder="Enter organization name"
+              placeholder="Введите название организации"
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
               required
@@ -191,11 +211,11 @@ const handleJoinOrganization = async (e: React.FormEvent) => {
 
           <div className={styles.formGroup}>
             <label htmlFor="orgDescription" className={styles.formLabel}>
-              Description (optional)
+              Описание (необязательно)
             </label>
             <textarea
               id="orgDescription"
-              placeholder="Enter organization description"
+              placeholder="Введите описание организации"
               value={orgDescription}
               onChange={(e) => setOrgDescription(e.target.value)}
               className={styles.textarea}
@@ -213,38 +233,37 @@ const handleJoinOrganization = async (e: React.FormEvent) => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setIsCreateModalOpen(false)}
+              onClick={handleCloseCreateModal}
               disabled={isLoading}
             >
-              Cancel
+              Отмена
             </Button>
             <Button
               type="submit"
               variant="primary"
               disabled={isLoading || !orgName.trim()}
             >
-              {isLoading ? 'Creating...' : 'Create Organization'}
+              {isLoading ? 'Создание...' : 'Создать организацию'}
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Модальное окно вступления в организацию */}
-     <Modal
+      <Modal
         isOpen={isJoinModalOpen}
         onClose={handleCloseJoinModal}
-        title="Join Organization"
+        title="Вступить в организацию"
         size="small"
       >
         <form onSubmit={handleJoinOrganization} className={styles.modalForm}>
           <div className={styles.formGroup}>
             <label htmlFor="inviteCode" className={styles.formLabel}>
-              Invite Code *
+              Код приглашения *
             </label>
             <Input
               id="inviteCode"
               type="text"
-              placeholder="Enter invite code"
+              placeholder="Введите код приглашения"
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
               required
@@ -261,17 +280,17 @@ const handleJoinOrganization = async (e: React.FormEvent) => {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => setIsJoinModalOpen(false)}
+              onClick={handleCloseJoinModal}
               disabled={isLoading}
             >
-              Cancel
+              Отмена
             </Button>
             <Button
               type="submit"
               variant="primary"
               disabled={isLoading || !inviteCode.trim()}
             >
-              {isLoading ? 'Joining...' : 'Join Organization'}
+              {isLoading ? 'Вступление...' : 'Вступить в организацию'}
             </Button>
           </div>
         </form>

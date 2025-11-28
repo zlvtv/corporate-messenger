@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Валидация пароля
       if (password.length < 6) {
-        throw new Error('Password must be at least 6 characters long.');
+        throw new Error('Пароль должен быть не меньше 6 символов в длину.');
       }
 
       if (!username.trim()) {
@@ -118,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         needsEmailConfirmation: needsEmailConfirmation
       };
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('Ошибка регистрации:', error);
       throw error;
     }
   };
@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error) throw error;
     } catch (error) {
-      console.error('Signin error:', error);
+      console.error('Ошибка входа:', error);
       throw error;
     }
   };

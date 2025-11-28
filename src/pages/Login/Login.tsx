@@ -48,15 +48,15 @@ const Login: React.FC = () => {
       
         if (error) throw error;
       
-        setSuccessMessage(`Password reset instructions have been sent to ${email}. Please check your email.`);
+        setSuccessMessage(`Инструкция по восстановлению пароля была отправлена на ${email}. Пожалуйста, проверьте входящие письма.`);
         setEmail('');
       } else if (isSignUp) {
         const result = await signUp(email, password, username);
         
         if (result.needsEmailConfirmation) {
-          setSuccessMessage(`Registration successful! We've sent a confirmation email to ${email}. Please check your inbox and click the confirmation link to activate your account.`);
+          setSuccessMessage(`Успешная регистрация! Мы отправили письмо с кодом подтверждения на ${email}. Пожалуйста, проверьте вашу почту и нажмите на ссылку в отправленном письме для активации аккаунта.`);
         } else if (result.session) {
-          setSuccessMessage('Registration successful! Redirecting...');
+          setSuccessMessage('Почта успешно подтверждена! Происходит перенаправление...');
         }
       } else {
         await signIn(email, password);
@@ -64,7 +64,7 @@ const Login: React.FC = () => {
     } catch (err) {
       const errorMessage = err instanceof Error 
         ? err.message 
-        : 'An unexpected error occurred';
+        : 'Случилась непредвиденная ошибка:';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -87,14 +87,14 @@ const Login: React.FC = () => {
   };
 
   const getTitle = () => {
-    if (isForgotPassword) return 'Reset Password';
-    return isSignUp ? 'Create Account' : 'Welcome Back';
+    if (isForgotPassword) return 'Восстановить пароль';
+    return isSignUp ? 'Создать аккаунт' : 'Добро пожаловать!';
   };
 
   const getSubmitButtonText = () => {
-    if (isLoading) return 'Loading...';
-    if (isForgotPassword) return 'Send Reset Instructions';
-    return isSignUp ? 'Sign Up' : 'Sign In';
+    if (isLoading) return 'Загрузка...';
+    if (isForgotPassword) return 'Получить инструкцию';
+    return isSignUp ? 'Зарегистрироваться' : 'Войти';
   };
 
   return (
@@ -108,7 +108,7 @@ const Login: React.FC = () => {
           {isSignUp && (
             <Input
               type="text"
-              placeholder="Username"
+              placeholder="Имя"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -118,7 +118,7 @@ const Login: React.FC = () => {
           
           <Input
             type="email"
-            placeholder="Email"
+            placeholder="Логин"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -128,7 +128,7 @@ const Login: React.FC = () => {
           {!isForgotPassword && (
             <Input
               type="password"
-              placeholder="Password"
+              placeholder="Пароль"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -140,9 +140,9 @@ const Login: React.FC = () => {
             <div className={styles.login__error}>
               {error.includes('already registered') ? (
                 <div>
-                  <strong>This email is already registered</strong>
+                  <strong>Адрес почты уже зарегистрирован.</strong>
                   <br />
-                  Please sign in or use a different email address.
+                  Просьба пройти авторизацию или использовать другой почтовый адрес.
                 </div>
               ) : (
                 error
@@ -175,7 +175,7 @@ const Login: React.FC = () => {
                 className={styles.login__switchButton}
                 disabled={isLoading}
               >
-                Back to Sign In
+                Обратно к авторизации
               </button>
             </div>
           ) : (
@@ -187,8 +187,8 @@ const Login: React.FC = () => {
                 disabled={isLoading}
               >
                 {isSignUp 
-                  ? 'Already have an account? Sign In' 
-                  : "Don't have an account? Sign Up"
+                  ? 'Уже есть аккаунт? Войти' 
+                  : "Нет аккаунта? Зарегистрироваться"
                 }
               </button>
               
@@ -199,7 +199,7 @@ const Login: React.FC = () => {
                   className={styles.login__switchButton}
                   disabled={isLoading}
                 >
-                  Forgot your password?
+                  Забыли пароль?
                 </button>
               )}
             </div>
