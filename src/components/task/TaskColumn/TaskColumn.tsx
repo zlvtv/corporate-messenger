@@ -5,27 +5,33 @@ import styles from './TaskColumn.module.css';
 
 interface TaskColumnProps {
   status: TaskStatus;
+  onAddTask?: () => void;
 }
 
-const TaskColumn: React.FC<TaskColumnProps> = ({ status }) => {
+const TaskColumn: React.FC<TaskColumnProps> = ({ status, onAddTask }) => {
   return (
     <div className={styles.column}>
-      <div className={styles.column__header}>
+      <header className={styles.column__header}>
         <div className={styles.column__title}>
-          <span 
+          <span
             className={styles.column__colorDot}
             style={{ backgroundColor: status.color }}
+            aria-label={`Color for ${status.name}`}
           />
           <span>{status.name}</span>
           <span className={styles.column__count}>0</span>
         </div>
-      </div>
-      
+      </header>
+
       <div className={styles.column__content}>
         <div className={styles.column__empty}>
-          <p>No tasks in {status.name}</p>
-          <button className={styles.column__addButton}>
-            + Add Task
+          <p>Нет задач в «{status.name}»</p>
+          <button
+            className={styles.column__addButton}
+            onClick={onAddTask}
+            aria-label={`Добавить задачу в ${status.name}`}
+          >
+            + Добавить
           </button>
         </div>
       </div>

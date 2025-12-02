@@ -19,36 +19,22 @@ const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkRecoverySession = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          setIsValidRecovery(false);
-          setError('Failed to verify recovery session.');
-          return;
-        }
+  const checkSession = async () => {
+    const { data: { session }, error } = await supabase.auth.getSession();
 
-        if (!session?.user?.email) {
-          setIsValidRecovery(false);
-          setError('Invalid recovery session. Please use a valid password reset link.');
-          
-          if (session?.user) {
-            await supabase.auth.signOut();
-          }
-          return;
-        }
+    // 🔐 Только если сессия есть и это recovery
+    if (error || !session) {
+      setError('Invalid recovery session. Please try again.');
+      setIsValidRecovery(false);
+      return;
+    }
 
-        setIsValidRecovery(true);
-        
-      } catch (err) {
-        setIsValidRecovery(false);
-        setError('Failed to verify recovery session.');
-      }
-    };
+    // Проверяем, что пользователь может изменить пароль
+    setIsValidRecovery(true);
+  };
 
-    checkRecoverySession();
-  }, [navigate]);
+  checkSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

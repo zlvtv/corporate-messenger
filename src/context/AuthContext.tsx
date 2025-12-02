@@ -1,3 +1,4 @@
+// src/context/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { UserProfile, AuthContextType } from '../types/auth.types';
@@ -10,63 +11,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session check error:', error);
-        }
+  let isMounted = true;
 
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-            full_name: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'User',
-          });
-        } else {
-          setUser(null);
+  const handleAuthStateChange = (event: any, session: any) => {
+    if (!isMounted) return;
+
+    const userData = session?.user
+      ? {
+          id: session.user.id,
+          email: session.user.email || '',
+          username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+          full_name: session.user.user_metadata?.full_name || 'User',
         }
-        
-        setIsInitialized(true);
-        setIsLoading(false);
-        
-      } catch (err) {
-        console.error('Auth initialization error:', err);
-        setIsInitialized(true);
+      : null;
+
+    setUser(userData);
+    setIsLoading(false);
+  };
+
+  const initialize = async () => {
+    try {
+      // Явно ждём сессию
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('❌ Ошибка при старте сессии:', error);
+      }
+
+      handleAuthStateChange(null, session);
+    } catch (err) {
+      console.error('💥 Критическая ошибка инициализации:', err);
+      if (isMounted) {
+        setUser(null);
         setIsLoading(false);
       }
-    };
-
-    initializeAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-            full_name: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'User',
-          });
-        } else {
-          setUser(null);
-        }
-        setIsLoading(false);
+    } finally {
+      if (isMounted) {
+        setIsInitialized(true); // ✅ ГАРАНТИРОВАННО ставим true
       }
-    );
+    }
+  };
 
-    return () => subscription.unsubscribe();
-  }, []);
+  initialize();
+
+  // Подписка на будущие изменения
+  const subscription = supabase.auth.onAuthStateChange(handleAuthStateChange);
+
+  return () => {
+    isMounted = false;
+    if (subscription && typeof subscription.unsubscribe === 'function') {
+      subscription.unsubscribe();
+    }
+  };
+}, []);
 
   const signUp = async (email: string, password: string, username: string) => {
     try {
-      // Валидация пароля
       if (password.length < 6) {
-        throw new Error('Пароль должен быть не меньше 6 символов в длину.');
+        throw new Error('Пароль должен быть не меньше 6 символов.');
       }
-
       if (!username.trim()) {
         throw new Error('Username is required.');
       }
@@ -75,39 +78,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          data: {
-            username: username.trim(),
-          },
+          data: { username: username.trim() },
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
 
       if (error) {
-        // Детальная обработка ошибок существующего пользователя
-        const errorMsg = error.message.toLowerCase();
-        
-        if (errorMsg.includes('already registered') || 
-            errorMsg.includes('user exists') ||
-            errorMsg.includes('email already') ||
-            errorMsg.includes('already in use') ||
-            errorMsg.includes('user already exists') ||
-            errorMsg.includes('duplicate key') ||
-            error.code === 'user_already_exists' ||
-            errorMsg.includes('already been registered')) {
-          throw new Error('This email address is already registered. Please sign in or use a different email.');
-        } else {
-          throw new Error(`Registration failed: ${error.message}`);
+        const msg = error.message.toLowerCase();
+        if (msg.includes('already') || msg.includes('exists')) {
+          throw new Error('Этот email уже зарегистрирован.');
         }
+        throw new Error(`Регистрация не удалась: ${error.message}`);
       }
 
-      // Проверяем, был ли пользователь создан
       if (!data.user) {
-        throw new Error('Registration failed: No user data received');
-      }
-
-      // Проверяем "тихое" создание пользователя (когда email уже существует)
-      if (data.user && !data.session && data.user.identities && data.user.identities.length === 0) {
-        throw new Error('This email address is already registered. Please sign in or use a different email.');
+        throw new Error('Регистрация не удалась: нет данных пользователя.');
       }
 
       const needsEmailConfirmation = !data.session;
@@ -115,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return {
         user: data.user,
         session: data.session,
-        needsEmailConfirmation: needsEmailConfirmation
+        needsEmailConfirmation,
       };
     } catch (error) {
       console.error('Ошибка регистрации:', error);
@@ -125,10 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
     } catch (error) {
       console.error('Ошибка входа:', error);
@@ -142,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       setUser(null);
     } catch (error) {
-      console.error('Signout error:', error);
+      console.error('Ошибка выхода:', error);
       throw error;
     }
   };

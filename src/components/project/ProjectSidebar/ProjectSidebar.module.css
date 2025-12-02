@@ -56,25 +56,26 @@
 }
 
 .projectList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   padding: 0 var(--space-m);
+  list-style: none;
 }
 
 .projectItem {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--space-s);
-  padding: var(--space-s);
+  padding: var(--space-m);
+  border: 1px solid #e2e8f0;
   border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-  border: 1px solid transparent;
+  background-color: white;
+  transition: box-shadow 0.2s;
 }
 
 .projectItem:hover {
-  background-color: #f8fafc;
+  box-shadow: var(--shadow-small);
 }
 
 .projectItem--active {

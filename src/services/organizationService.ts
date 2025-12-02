@@ -1,136 +1,128 @@
 // src/services/organizationService.ts
 import { supabase } from '../lib/supabase';
-import { Organization, OrganizationWithMembers, CreateOrganizationData, OrganizationMember } from '../types/organization.types';
+import {
+  Organization,
+  OrganizationWithMembers,
+  CreateOrganizationData,
+} from '../types/organization.types';
 
 export const organizationService = {
+  // Получение организаций
   async getUserOrganizations(): Promise<OrganizationWithMembers[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Пользователь не аутентифицирован');
-
-    try {
-      const { data: organizations, error } = await supabase.rpc('get_user_organizations_with_members');
-
-      if (error) {
-        return [];
-      }
-
-      if (!organizations || organizations.length === 0) {
-        return [];
-      }
-      
-      return organizations as OrganizationWithMembers[];
-
-    } catch (error) {
-      return [];
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      throw new Error('Не удалось получить данные пользователя');
     }
+
+    const { data, error } = await supabase.rpc('get_user_organizations_with_members');
+
+    if (error) {
+      console.error('RPC error (get_user_organizations):', error);
+      throw new Error(`Ошибка загрузки организаций: ${error.message}`);
+    }
+
+    return (data as OrganizationWithMembers[]) || [];
   },
 
+  // Вступление через код
   async joinOrganization(inviteCode: string): Promise<string> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Пользователь не аутентифицирован');
 
-    try {
-      const cleanInviteCode = inviteCode.trim().toUpperCase();
+    const cleanInviteCode = inviteCode.trim().toUpperCase();
 
-      const { data: organizationId, error: joinError } = await supabase.rpc(
-        'join_organization_by_invite',
-        { p_invite_code: cleanInviteCode }
-      );
+    const { data: orgId, error } = await supabase.rpc('join_organization_by_invite', {
+      p_invite_code: cleanInviteCode,
+    });
 
-      if (joinError) throw joinError;
-      if (!organizationId) throw new Error('Не удалось вступить в организацию');
-
-      return organizationId;
-
-    } catch (error) {
-      throw error;
+    if (error) {
+      if (error.code === 'PGRST16') throw new Error('Неверный код приглашения');
+      throw new Error(`Не удалось вступить: ${error.message}`);
     }
+
+    return orgId;
   },
 
+  // Создание организации
   async createOrganization(data: CreateOrganizationData): Promise<Organization> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Пользователь не аутентифицирован');
 
-    try {
-      const { data: organizationId, error: rpcError } = await supabase.rpc(
-        'create_organization_with_owner',
-        {
-          org_name: data.name,
-          org_description: data.description || null
-        }
-      );
+    const { data: orgId, error: rpcError } = await supabase.rpc('create_organization_with_owner', {
+      org_name: data.name,
+      org_description: data.description || null,
+    });
 
-      if (rpcError) throw rpcError;
-      if (!organizationId) throw new Error('Ошибка создания организации');
-
-      const { data: organization, error: fetchError } = await supabase
-        .from('organizations')
-        .select('id, name, description, invite_code, created_by, created_at, updated_at')
-        .eq('id', organizationId)
-        .single();
-
-      if (fetchError) {
-        return {
-          id: organizationId,
-          name: data.name,
-          description: data.description,
-          invite_code: 'GENERATED',
-          created_by: user.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          organization_members: []
-        } as Organization;
-      }
-
-      return {
-        ...organization,
-        organization_members: []
-      };
-
-    } catch (error) {
-      throw error;
+    if (rpcError || !orgId) {
+      throw new Error(rpcError?.message || 'Ошибка создания организации');
     }
+
+    const { data: org, error: fetchError } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', orgId)
+      .single();
+
+    if (fetchError) {
+      console.warn('Не удалось загрузить организацию после создания, используем fallback');
+      return {
+        id: orgId,
+        name: data.name,
+        description: data.description,
+        invite_code: 'TEMP_CODE',
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_invite_code_active: true,
+      };
+    }
+
+    return {
+      ...org,
+      organization_members: [],
+    } as Organization;
   },
 
+  // Обновление кода приглашения
   async regenerateInviteCode(organizationId: string): Promise<string> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Пользователь не аутентифицирован');
 
-    const { data: newInviteCode, error } = await supabase.rpc(
-      'regenerate_invite_code',
-      { org_id: organizationId }
-    );
+    const { data, error } = await supabase.rpc('regenerate_invite_code', {
+      org_id: organizationId,
+    });
 
-    if (error) throw error;
-    return newInviteCode;
+    if (error) throw new Error(`Ошибка обновления кода: ${error.message}`);
+    return data;
   },
 
+  // Деактивация кода
   async deactivateInviteCode(organizationId: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Пользователь не аутентифицирован');
 
     const { error } = await supabase
       .from('organizations')
-      .update({ 
+      .update({
         is_invite_code_active: false,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', organizationId)
       .eq('created_by', user.id);
 
-    if (error) throw error;
+    if (error) throw new Error(`Не удалось деактивировать код: ${error.message}`);
   },
 
+  // Удаление организации
   async deleteOrganization(organizationId: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Пользователь не аутентифицирован');
 
     const { error } = await supabase.rpc('delete_organization', {
-      org_id: organizationId
+      org_id: organizationId,
     });
 
-    if (error) {
-      throw new Error(`Ошибка удаления организации: ${error.message}`);
-    }
-  }
+    if (error) throw new Error(`Ошибка удаления организации: ${error.message}`);
+  },
 };

@@ -2,12 +2,8 @@
 import React from 'react';
 import { useOrganization } from '../../../context/OrganizationContext';
 import Button from '../../ui/Button/Button';
+import { useUI } from '../../../context/UIContext'; // ✅ Импортируем
 import styles from './OrganizationSidebar.module.css';
-
-interface OrganizationSidebarProps {
-  onOpenCreateModal: () => void;
-  onOpenJoinModal: () => void;
-}
 
 const getMembersText = (count: number): string => {
   if (count === 1) return '1 участник';
@@ -15,51 +11,55 @@ const getMembersText = (count: number): string => {
   return `${count} участников`;
 };
 
+interface OrganizationSidebarProps {
+  onOpenCreateModal: () => void;
+  onOpenJoinModal: () => void;
+}
+
 const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
   onOpenCreateModal,
   onOpenJoinModal,
 }) => {
-  const { organizations, currentOrganization, setCurrentOrganization, isLoading } = useOrganization();
+  const { organizations, currentOrganization, setCurrentOrganization, isLoading } =
+    useOrganization();
+  const { isSidebarCollapsed, toggleSidebar } = useUI(); // ✅ Подключаем
 
   if (isLoading) {
     return (
-      <div className={styles.sidebar}>
-        <div className={styles.sidebar__loading}>Загрузка организаций...</div>
+      <div className={`${styles.sidebar} ${isSidebarCollapsed ? styles['sidebar--collapsed'] : ''}`}>
+        <div className={styles.sidebar__loading}>Загрузка...</div>
       </div>
     );
   }
 
   return (
-    <div className={styles.sidebar}>
+    <div className={`${styles.sidebar} ${isSidebarCollapsed ? styles['sidebar--collapsed'] : ''}`}>
       <div className={styles.sidebar__header}>
         <h2 className={styles.sidebar__title}>Организации</h2>
-        <div className={styles.sidebar__actions}>
-          <Button
-            variant="primary"
-            onClick={onOpenCreateModal}
-            className={styles.sidebar__button}
-            size="small"
-          >
-            Создать
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={onOpenJoinModal}
-            className={styles.sidebar__button}
-            size="small"
-          >
-            Вступить
-          </Button>
-        </div>
+        {!isSidebarCollapsed && (
+          <div className={styles.sidebar__actions}>
+            <Button variant="primary" size="small" onClick={onOpenCreateModal}>
+              Создать
+            </Button>
+            <Button variant="secondary" size="small" onClick={onOpenJoinModal}>
+              Вступить
+            </Button>
+          </div>
+        )}
+        <button
+          onClick={toggleSidebar}
+          className={styles.sidebar__toggleButton}
+          title={isSidebarCollapsed ? 'Развернуть' : 'Свернуть'}
+        >
+          {isSidebarCollapsed ? '→' : '←'}
+        </button>
       </div>
 
       <div className={styles.sidebar__content}>
         {organizations.length === 0 ? (
           <div className={styles.sidebar__empty}>
             <p>Нет организаций</p>
-            <p className={styles.sidebar__emptyHint}>
-              Создайте свою первую организацию или вступите в существующую
-            </p>
+            <p className={styles.sidebar__emptyHint}>Создайте или вступите</p>
           </div>
         ) : (
           <div className={styles.organizationList}>
@@ -74,14 +74,14 @@ const OrganizationSidebar: React.FC<OrganizationSidebarProps> = ({
                 <div className={styles.organizationItem__avatar}>
                   {org.name.charAt(0).toUpperCase()}
                 </div>
-                <div className={styles.organizationItem__info}>
-                  <div className={styles.organizationItem__name}>
-                    {org.name}
+                {!isSidebarCollapsed && (
+                  <div className={styles.organizationItem__info}>
+                    <div className={styles.organizationItem__name}>{org.name}</div>
+                    <div className={styles.organizationItem__members}>
+                      {getMembersText(org.organization_members?.length || 0)}
+                    </div>
                   </div>
-                  <div className={styles.organizationItem__members}>
-                    {getMembersText(org.organization_members?.length || 0)}
-                  </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

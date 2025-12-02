@@ -7,25 +7,27 @@ import styles from './TaskBoard.module.css';
 const TaskBoard: React.FC = () => {
   const { projectStatuses } = useProject();
 
-  if (projectStatuses.length === 0) {
+  if (!projectStatuses.length) {
     return (
       <div className={styles.board}>
         <div className={styles.board__empty}>
-          <h3>No statuses found</h3>
-          <p>Task statuses will appear here once created</p>
+          <h3>Нет статусов</h3>
+          <p>Статусы задач появятся после создания проекта</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.board}>
-      <div className={styles.board__columns}>
+    <div className={styles.board} aria-label="Доска задач">
+      <div className={styles.board__columns} role="list">
         {projectStatuses.map((status) => (
-          <TaskColumn
-            key={status.id}
-            status={status}
-          />
+          <div key={status.id} role="listitem">
+            <TaskColumn
+              status={status}
+              onAddTask={() => console.log(`Добавление задачи в статус: ${status.name}`)}
+            />
+          </div>
         ))}
       </div>
     </div>

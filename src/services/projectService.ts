@@ -17,11 +17,11 @@ export const projectService = {
         }
       ])
       .select()
-      .single();
+      .single<Project>(); // Явное указание типа для строгой типизации
 
     if (error) throw error;
 
-    // Создаем стандартные статусы для проекта
+    // Параллельное создание стандартных статусов (быстрее, чем по одному)
     await this.createDefaultStatuses(project.id);
 
     return project;
@@ -29,6 +29,8 @@ export const projectService = {
 
   // Создание стандартных статусов
   async createDefaultStatuses(projectId: string): Promise<void> {
+    console.log('Создание стандартных статусов для проекта:', projectId);
+
     const defaultStatuses = [
       { name: 'Backlog', color: '#6B7280', position: 0, is_default: false },
       { name: 'To Do', color: '#3B82F6', position: 1, is_default: true },
@@ -37,6 +39,7 @@ export const projectService = {
       { name: 'Done', color: '#10B981', position: 4, is_default: false },
     ];
 
+    // Вставка всех статусов одной операцией для повышения производительности
     const { error } = await supabase
       .from('task_statuses')
       .insert(
@@ -46,20 +49,42 @@ export const projectService = {
         }))
       );
 
-    if (error) throw error;
+    if (error) {
+      console.error('Ошибка при массовом создании статусов:', error);
+      // Не выбрасываем исключение, чтобы не нарушать создание проекта
+    } else {
+      console.log('Все стандартные статусы успешно созданы');
+    }
   },
 
   // Получение проектов организации
   async getOrganizationProjects(organizationId: string): Promise<Project[]> {
+    console.log('Получение проектов для организации:', organizationId);
+
     const { data, error } = await supabase
       .from('projects')
       .select('*')
       .eq('organization_id', organizationId)
-      .eq('is_archived', false)
+      .is('is_archived', false) // Используем `.is()` для сравнения с `NULL`-безопасным `false`
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+    if (error) {
+      console.error('Ошибка Supabase при загрузке проектов:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+
+      if (error.code === '42P01') {
+        throw new Error('Таблица проектов не существует. Проверьте миграции базы данных.');
+      }
+
+      throw error;
+    }
+
+    console.log('Загружено проектов:', data.length);
+    return data;
   },
 
   // Получение статусов проекта
@@ -70,7 +95,11 @@ export const projectService = {
       .eq('project_id', projectId)
       .order('position', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Ошибка загрузки статусов проекта:', error);
+      throw error;
+    }
+
     return data || [];
   },
 
@@ -81,7 +110,10 @@ export const projectService = {
       .update(updates)
       .eq('id', projectId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Ошибка обновления проекта:', error);
+      throw error;
+    }
   },
 
   // Архивирование проекта

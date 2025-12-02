@@ -77,3 +77,19 @@
   font-size: 14px;
   line-height: 1.5;
 }
+
+.login__links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px; 
+  margin-top: 16px;
+}
+
+.login__logo {
+  font-size: 28px;
+  font-weight: 700;
+  color: black;
+  position: center;
+  margin-bottom: var(--space-s);
+  letter-spacing: -0.5px;
+}
