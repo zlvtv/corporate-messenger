@@ -9,7 +9,11 @@
   --color-error: #ef4444;
   --color-text: #1e293b;
   --color-text-light: #64748b;
-
+  --color-danger: #ef4444;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  
   /* Отступы */
   --space-xs: 4px;
   --space-s: 8px;

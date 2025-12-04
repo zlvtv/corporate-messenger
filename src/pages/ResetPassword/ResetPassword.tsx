@@ -1,13 +1,11 @@
+// src/pages/ResetPassword/ResetPassword.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import Button from '../../components/ui/Button/Button';
-import Input from '../../components/ui/Input/Input';
+import Button from '../../components/ui/button/button';
+import Input from '../../components/ui/input/input';
 import styles from './ResetPassword.module.css';
 
-/**
- * Компонент для установки нового пароля после восстановления
- */
 const ResetPassword: React.FC = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -15,39 +13,56 @@ const ResetPassword: React.FC = () => {
   const [isValidRecovery, setIsValidRecovery] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(3); // ← Обратный отсчёт
 
   const navigate = useNavigate();
 
   useEffect(() => {
-  const checkSession = async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const checkRecovery = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
 
-    // 🔐 Только если сессия есть и это recovery
-    if (error || !session) {
-      setError('Invalid recovery session. Please try again.');
-      setIsValidRecovery(false);
-      return;
-    }
+      if (error || !session) {
+        setError('Срок действия ссылки истёк или она недействительна.');
+        setIsValidRecovery(false);
+        return;
+      }
 
-    // Проверяем, что пользователь может изменить пароль
-    setIsValidRecovery(true);
-  };
+      // Проверим тип сессии
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('Не удалось получить данные пользователя.');
+        setIsValidRecovery(false);
+        return;
+      }
 
-  checkSession();
+      // ✅ Всё ок
+      setIsValidRecovery(true);
+    };
+
+    checkRecovery();
   }, []);
+
+  // Обратный отсчёт при успехе
+  useEffect(() => {
+    if (successMessage && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      navigate('/login', { replace: true });
+    }
+  }, [successMessage, countdown, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     setError(null);
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Пароли не совпадают');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError('Пароль должен быть не менее 6 символов');
       return;
     }
 
@@ -59,20 +74,14 @@ const ResetPassword: React.FC = () => {
       });
 
       if (error) throw error;
-
-      setSuccessMessage('Password updated successfully! Redirecting to login...');
       
-      await supabase.auth.signOut();
-      
-      setTimeout(() => {
-        navigate('/login', { replace: true });
-      }, 2000);
+      await supabase.auth.signOut({ scope: 'global' });
+      setSuccessMessage('Пароль успешно изменён! Перенаправление...');
+      setCountdown(3);
 
     } catch (err) {
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : 'An unexpected error occurred';
-      setError(errorMessage);
+      const message = err instanceof Error ? err.message : 'Ошибка при смене пароля';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -83,10 +92,8 @@ const ResetPassword: React.FC = () => {
       <div className={styles.container}>
         <div className={styles.card}>
           <div className={styles.loading}>
-            <div>Checking recovery link...</div>
-            <div className={styles.loadingSubtext}>
-              This should only take a moment
-            </div>
+            <div>Проверка ссылки...</div>
+            <div className={styles.loadingSubtext}>Ожидание подтверждения</div>
           </div>
         </div>
       </div>
@@ -97,16 +104,14 @@ const ResetPassword: React.FC = () => {
     return (
       <div className={styles.container}>
         <div className={styles.card}>
-          <h1 className={styles.title}>Cannot Reset Password</h1>
-          <div className={styles.error}>
-            {error}
-          </div>
+          <h1 className={styles.title}>Ошибка восстановления</h1>
+          <div className={styles.error}>{error}</div>
           <Button
             variant="primary"
             onClick={() => navigate('/login')}
             className={styles.button}
           >
-            Go to Login
+            На главную
           </Button>
         </div>
       </div>
@@ -116,20 +121,20 @@ const ResetPassword: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Set New Password</h1>
+        <h1 className={styles.title}>Новый пароль</h1>
         <p className={styles.subtitle}>
-          Please enter your new password below.
+          Введите новый пароль. Ссылка действительна 1 час.
         </p>
-        
+
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
             <label htmlFor="password" className={styles.label}>
-              New Password
+              Новый пароль
             </label>
             <Input
               id="password"
               type="password"
-              placeholder="Enter new password"
+              placeholder="Минимум 6 символов"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -138,15 +143,15 @@ const ResetPassword: React.FC = () => {
               autoComplete="new-password"
             />
           </div>
-          
+
           <div className={styles.formGroup}>
             <label htmlFor="confirmPassword" className={styles.label}>
-              Confirm New Password
+              Подтвердите пароль
             </label>
             <Input
               id="confirmPassword"
               type="password"
-              placeholder="Confirm new password"
+              placeholder="Повторите пароль"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -156,25 +161,20 @@ const ResetPassword: React.FC = () => {
             />
           </div>
 
-          {error && (
-            <div className={styles.error}>
-              {error}
-            </div>
-          )}
-
+          {error && <div className={styles.error}>{error}</div>}
           {successMessage && (
             <div className={styles.success}>
-              {successMessage}
+              {successMessage} ({countdown}…)
             </div>
           )}
 
           <Button
             type="submit"
             variant="primary"
-            disabled={isLoading}
+            disabled={isLoading || !!successMessage}
             className={styles.button}
           >
-            {isLoading ? 'Updating Password...' : 'Update Password'}
+            {isLoading ? 'Меняем пароль...' : 'Сменить пароль'}
           </Button>
 
           <div className={styles.footer}>
@@ -186,7 +186,7 @@ const ResetPassword: React.FC = () => {
               }}
               className={styles.backButton}
             >
-              Back to Login
+              ← Назад к входу
             </button>
           </div>
         </form>

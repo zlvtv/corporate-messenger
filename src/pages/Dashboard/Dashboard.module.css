@@ -1,169 +1,70 @@
 /* src/pages/Dashboard/Dashboard.module.css */
 .dashboard {
-  min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
   background-color: var(--color-background);
+  transition: background-color 0.3s ease;
 }
 
-.dashboard__header {
-  background-color: var(--color-surface);
-  border-bottom: 1px solid #e2e8f0;
-  padding: var(--space-m) 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+.dashboard.light {
+  --color-background: #f8fafc;
+  --color-surface: #ffffff;
+  --color-text: #1e293b;
+  --color-text-light: #64748b;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --shadow-medium: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-.dashboard__headerContent {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 var(--space-m);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.dashboard__title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-primary);
-  margin: 0;
-}
-
-.dashboard__userInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-m);
-}
-
-.dashboard__userName {
-  color: var(--color-text);
-  font-weight: 500;
+.dashboard.dark {
+  --color-background: #111827;
+  --color-surface: #1f2937;
+  --color-text: #f1f5f9;
+  --color-text-light: #94a3b8;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --shadow-medium: 0 10px 25px rgba(0, 0, 0, 0.25);
 }
 
 .dashboard__main {
-  flex: 1;
-  display: flex;
-  max-width: 100%;
-  margin: 0 auto;
-  width: 100%;
-  min-height: calc(100vh - 80px);
-  overflow-x: hidden;
+  margin: 20px 20px 20px 100px;
+  width: calc(100% - 140px);
+  height: calc(100vh - 40px);
+  background: var(--color-surface);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-medium);
 }
 
 .dashboard__content {
+  display: flex;
+  height: calc(100% - 100px);
+  background: var(--color-surface);
+}
+
+.dashboard__chat {
+  overflow-y: auto;
+  border-right: 1px solid #e2e8f0;
+  transition: width 0.2s ease;
+}
+
+.dashboard__board {
   flex: 1;
-  padding: var(--space-l);
-  background-color: var(--color-surface);
-  margin: 0; /* Убрали margin — теперь на одном уровне */
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-small);
-  overflow: hidden; /* Чтобы дочерние блоки не вылезали */
+  overflow: auto;
+  min-width: 300px;
 }
 
-.dashboard__welcome {
-  text-align: center;
-  max-width: 500px;
-  margin: 100px auto 0;
-  padding: var(--space-xl);
+.dashboard__fullscreen {
+  height: calc(100% - 100px);
+  overflow: auto;
+  border-radius: 12px;
+  background: var(--color-surface);
+  margin: 16px;
 }
 
-.dashboard__welcome h2 {
-  margin-bottom: var(--space-m);
-  color: var(--color-text);
-  font-size: 24px;
-}
-
-.dashboard__welcome p {
-  color: var(--color-text-light);
-  margin-bottom: var(--space-l);
-  font-size: 16px;
-  line-height: 1.6;
-}
-
-.dashboard__actionButtons {
-  display: flex;
-  gap: var(--space-m);
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-/* Стили для форм в модальных окнах */
-.modalForm {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-l);
-}
-
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s);
-}
-
-.formLabel {
-  font-weight: 500;
-  color: var(--color-text);
-  font-size: 14px;
-}
-
-.textarea {
-  padding: var(--space-s) var(--space-m);
-  border: 1px solid #e2e8f0;
-  border-radius: var(--border-radius);
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-  min-height: 80px;
-  background-color: var(--color-surface);
-  transition: border-color 0.2s ease-in-out;
-}
-
-.textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.formError {
-  background-color: #fef2f2;
-  border: 1px solid var(--color-error);
-  color: var(--color-error);
-  padding: var(--space-s) var(--space-m);
-  border-radius: var(--border-radius);
-  font-size: 14px;
-}
-
-.modalActions {
-  display: flex;
-  gap: var(--space-s);
-  justify-content: flex-end;
-  margin-top: var(--space-m);
-}
-
-.colorPicker {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.colorOption {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.colorOption:hover {
-  transform: scale(1.1);
-  border-color: #9ca3af;
-}
-
-.colorOption--selected {
-  border-color: #000;
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+@media (prefers-color-scheme: dark) {
+  .dashboard__chat {
+    border-color: #334155;
+  }
 }

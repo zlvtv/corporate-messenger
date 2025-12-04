@@ -93,3 +93,16 @@
   margin-bottom: var(--space-s);
   letter-spacing: -0.5px;
 }
+
+.forgotLink {
+  text-align: center;
+  font-size: 14px;
+  color: #667eea;
+  text-decoration: none;
+  margin-top: 12px;
+  display: block;
+}
+
+.forgotLink:hover {
+  text-decoration: underline;
+}

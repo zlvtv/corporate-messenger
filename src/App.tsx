@@ -1,115 +1,67 @@
 // src/App.tsx
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { OrganizationProvider } from './context/OrganizationContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { OrganizationProvider } from './contexts/OrganizationContext';
 import { ProjectProvider } from './contexts/ProjectContext';
+import { UIProvider } from './contexts/UIContext';
+import Dashboard from './pages/Dashboard/Dashboard';
 import Login from './pages/Login/Login';
 import AuthCallback from './pages/AuthCallback/AuthCallback';
-import RecoveryCallback from './pages/RecoveryCallback/RecoveryCallback';
-import Dashboard from './pages/Dashboard/Dashboard';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
-import styles from './App.module.css';
-import { UIProvider } from './context/UIContext';
+import RecoveryCallback from './pages/RecoveryCallback/RecoveryCallback';
+import './styles/globals.css';
 
-// === Состояние загрузки ===
-const LoadingState: React.FC = () => (
-  <div className={styles.loadingContainer}>
-    <div className={styles.loadingSpinner} />
-    <span>Загрузка...</span>
-  </div>
-);
-
-// === Защищённый маршрут: только для авторизованных ===
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isInitialized } = useAuth();
-
-  if (!isInitialized) return <LoadingState />;
-  if (!user) return <Navigate to="/login" replace />;
-
-  return (
-    <OrganizationProvider>
-      <ProjectProvider>
-        {children}
-      </ProjectProvider>
-    </OrganizationProvider>
-  );
-};
-
-// === Гостевой маршрут: только для НЕавторизованных ===
-const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isInitialized } = useAuth();
-
-  if (!isInitialized) return <LoadingState />;
-
-  // 🔓 Разрешаем доступ к /password-recovery, если это recovery-сессия
-  if (user) {
-    // Проверим, можно ли менять пароль
-    // Supabase не даёт прямого флага, но можно проверить через API
-    const isRecovery = window.location.pathname === '/password-recovery';
-
-    if (isRecovery) {
-      return <>{children}</>; // ✅ Пускаем на /password-recovery даже если user есть
-    }
-
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <>{children}</>;
-};  
-
-// === Приложение ===
-function App() {
+const App: React.FC = () => {
   return (
     <AuthProvider>
       <UIProvider>
-        <BrowserRouter>
-        <Routes>
-          {/* Гостевые маршруты — только без сессии */}
-          <Route
-            path="/login"
-            element={
-              <GuestRoute>
-                <Login />
-              </GuestRoute>
-            }
-          />
-          <Route
-            path="/password-recovery"
-            element={
-              <GuestRoute>
-                <ResetPassword />
-              </GuestRoute>
-            }
-          />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/recovery-callback" element={<RecoveryCallback />} />
-
-          {/* Защищённые маршруты — только с сессией */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Редирект */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
+        <OrganizationProvider>
+          <ProjectProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/recovery/callback" element={<RecoveryCallback />} />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </BrowserRouter>
+          </ProjectProvider>
+        </OrganizationProvider>
       </UIProvider>
     </AuthProvider>
   );
-}
+};
+
+// Простая защита маршрута
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="loading">Загрузка...</div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  return <>{children}</>;
+};
+
+// Вынести, если useAuth не видит
+const useAuth = () => {
+  const context = React.useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+};
 
 export default App;

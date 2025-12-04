@@ -1,0 +1,99 @@
+/* src/components/modals/search-modal/search-modal.module.css */
+.search-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.search-modal {
+  position: absolute;
+  background: var(--color-surface);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  width: 320px;
+  max-height: 400px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  animation: slideIn 0.2s ease;
+}
+
+.search-modal__title {
+  margin: 0;
+  padding: 16px 24px 8px;
+  font-size: 1.1rem;
+  color: var(--color-text);
+}
+
+.search-modal__input {
+  width: calc(100% - 48px);
+  margin: 8px 24px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+}
+
+.search-modal__input:focus {
+  border-color: var(--color-primary);
+}
+
+.search-modal__results {
+  padding: 16px 24px;
+  font-size: 14px;
+  color: var(--color-text-light);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.search-modal__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-modal__close:hover {
+  background: #f1f5f9;
+  color: #333;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .search-modal {
+    background: #2c2c2e;
+    border-color: #333;
+  }
+  .search-modal__input {
+    background: #333;
+    border-color: #4a4a4a;
+    color: #f0f0f0;
+  }
+  .search-modal__input:focus {
+    border-color: var(--color-primary);
+  }
+  .search-modal__results {
+    color: #ccc;
+  }
+}

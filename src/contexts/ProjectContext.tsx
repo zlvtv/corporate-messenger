@@ -22,6 +22,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [projectStatuses, setProjectStatuses] = useState<TaskStatus[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [statusCache, setStatusCache] = useState<Record<string, TaskStatus[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [lastLoadedOrgId, setLastLoadedOrgId] = useState<string | null>(null);
 
@@ -89,12 +90,17 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
-    if (currentProject?.id) {
-      loadProjectStatuses(currentProject.id);
-    } else {
-      setProjectStatuses([]);
-    }
-  }, [currentProject?.id, loadProjectStatuses]);
+  const channel = supabase
+    .channel('tasks-changes')
+    .on('postgres_changes', 
+      { event: 'INSERT', schema: 'public', table: 'tasks', filter: `project_id=eq.${projectId}` },
+      (payload) => {
+        // Обнови состояние
+      })
+    .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [projectId]);
 
   const value = {
     projects,
