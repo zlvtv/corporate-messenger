@@ -1,67 +1,71 @@
 // src/App.tsx
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
-import { OrganizationProvider } from './contexts/OrganizationContext';
-import { ProjectProvider } from './contexts/ProjectContext';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UIProvider } from './contexts/UIContext';
-import Dashboard from './pages/Dashboard/Dashboard';
+import { OrganizationProvider } from './contexts/OrganizationContext'; // Опечатка? Возможно, ProjectProvider должен быть здесь
+import { ProjectProvider } from './contexts/ProjectContext';
 import Login from './pages/Login/Login';
+import Dashboard from './pages/Dashboard/Dashboard';
 import AuthCallback from './pages/AuthCallback/AuthCallback';
-import ResetPassword from './pages/ResetPassword/ResetPassword';
-import RecoveryCallback from './pages/RecoveryCallback/RecoveryCallback';
-import './styles/globals.css';
+import LoadingState from './components/ui/loading/LoadingState';
 
+// Приватный маршрут: только для авторизованных
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isInitialized, isLoading } = useAuth();
+
+  if (!isInitialized || isLoading) return <LoadingState />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+// Публичный маршрут: только для НЕавторизованных
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isInitialized, isLoading } = useAuth();
+  if (!isInitialized || isLoading) return <LoadingState />;
+  if (user) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
+// Для обработки колбэков: показываем только если НЕ авторизован, иначе редирект
+const AuthCallbackRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isInitialized, isLoading } = useAuth();
+  if (!isInitialized || isLoading) return <LoadingState />;
+  if (user) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
+// Фолбэк: 404 + редирект по авторизации
+const FallbackRoute: React.FC = () => {
+  const { user, isInitialized, isLoading } = useAuth();
+  if (!isInitialized || isLoading) return <LoadingState />;
+  return <Navigate to={user ? '/' : '/login'} replace />;
+};
+
+// Основные маршруты
+const AppRoutes: React.FC = () => {
+  return (
+    <Routes>
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/auth/callback" element={<AuthCallbackRoute><AuthCallback /></AuthCallbackRoute>} />
+      <Route path="/" element={<PrivateRoute><OrganizationProvider><ProjectProvider><Dashboard /></ProjectProvider></OrganizationProvider></PrivateRoute>} />
+      <Route path="/dashboard" element={<PrivateRoute><OrganizationProvider><ProjectProvider><Dashboard /></ProjectProvider></OrganizationProvider></PrivateRoute>} />
+      <Route path="*" element={<FallbackRoute />} />
+    </Routes>
+  );
+};
+
+// Основной компонент
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <UIProvider>
-        <OrganizationProvider>
-          <ProjectProvider>
-            <BrowserRouter>
-              <Routes>
-                <Route path="/login" element={<Login />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/recovery/callback" element={<RecoveryCallback />} />
-                <Route
-                  path="/"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-              </Routes>
-            </BrowserRouter>
-          </ProjectProvider>
-        </OrganizationProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
       </UIProvider>
     </AuthProvider>
   );
-};
-
-// Простая защита маршрута
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <div className="loading">Загрузка...</div>;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
-  return <>{children}</>;
-};
-
-// Вынести, если useAuth не видит
-const useAuth = () => {
-  const context = React.useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within AuthProvider');
-  return context;
 };
 
 export default App;

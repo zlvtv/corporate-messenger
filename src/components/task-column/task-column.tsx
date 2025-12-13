@@ -1,7 +1,7 @@
 // src/components/task/TaskColumn/TaskColumn.tsx
 import React from 'react';
 import { TaskStatus } from '../../types/project.types';
-import styles from './TaskColumn.module.css';
+import styles from './task-column.module.css';
 
 interface TaskColumnProps {
   status: TaskStatus;

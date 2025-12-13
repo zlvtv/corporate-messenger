@@ -4,10 +4,11 @@ import OrgIconPanel from '../../components/org-icon-panel/org-icon-panel';
 import SettingsPanel from '../../components/settings-panel/settings-panel';
 import MainHeader from '../../components/main-header/main-header';
 import ChatHeader from '../../components/chat-header/chat-header';
-import ProjectChat from '../../components/chat/project-chat/project-chat';
+import ProjectChat from '../../components/project-chat/project-chat';
 import TaskBoard from '../../components/task-board/task-board';
 import ResizableSplitter from '../../components/resizable-splitter/resizable-splitter';
 import styles from './Dashboard.module.css';
+import LoadingState from '../../components/ui/loading/LoadingState';
 import { useUI } from '../../contexts/UIContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { useProject } from '../../contexts/ProjectContext';
@@ -17,12 +18,9 @@ const Dashboard: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { currentProject } = useProject();
 
+  // Показываем лоадер, пока организация не выбрана
   if (!currentOrganization) {
-    return (
-      <div className={styles.dashboard}>
-        <p>Выберите организацию</p>
-      </div>
-    );
+    return <LoadingState message="Загрузка..." />;
   }
 
   return (

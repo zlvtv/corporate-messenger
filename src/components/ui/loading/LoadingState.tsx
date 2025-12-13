@@ -1,7 +1,7 @@
-// src/pages/AuthCallback/AuthCallback.tsx
+// src/components/ui/loading/LoadingState.tsx
 import React from 'react';
 
-const AuthCallback: React.FC = () => {
+const LoadingState: React.FC<{ message?: string }> = ({ message = 'Загрузка...' }) => {
   return (
     <div style={{
       display: 'flex',
@@ -9,7 +9,10 @@ const AuthCallback: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'center',
       height: '100vh',
-      backgroundColor: '#f9fafb'
+      backgroundColor: '#f9fafb',
+      fontFamily: 'system-ui, sans-serif',
+      textAlign: 'center',
+      padding: '20px',
     }}>
       <div style={{
         width: '40px',
@@ -18,9 +21,10 @@ const AuthCallback: React.FC = () => {
         borderTopColor: '#3b82f6',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite',
-        marginBottom: '16px'
       }}></div>
-      <div style={{ color: '#6b7280', fontSize: '18px' }}>Завершение авторизации...</div>
+      <div style={{ marginTop: '16px', color: '#6b7280', fontSize: '16px' }}>
+        {message}
+      </div>
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
@@ -30,4 +34,4 @@ const AuthCallback: React.FC = () => {
   );
 };
 
-export default AuthCallback;
+export default LoadingState;

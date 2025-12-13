@@ -1,46 +1,45 @@
-// src/pages/RecoveryCallback/RecoveryCallback.tsx
 import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
-import styles from './RecoveryCallback.module.css';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const RecoveryCallback: React.FC = () => {
+  const { user, isInitialized } = useAuth();
   const navigate = useNavigate();
-  const { search } = useLocation();
 
   useEffect(() => {
-    const handleRecovery = async () => {
-      const params = new URLSearchParams(search);
-      const tokenType = params.get('type');
-
-      if (tokenType !== 'recovery') {
-        console.warn('❌ Не recovery-токен:', tokenType);
-        return navigate('/login?error=invalid_link', { replace: true });
-      }
-
-      // Даем Supabase время обработать токен
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (error || !session) {
-        console.error('❌ Ошибка сессии:', error);
-        return navigate('/login?error=recovery_failed', { replace: true });
-      }
-
-      // Успешно: перейдём к смене пароля
-      navigate('/reset-password', { replace: true });
-    };
-
-    handleRecovery();
-  }, [navigate, search]);
+    // Если уже инициализировали и пользователь есть - на дашборд
+    if (isInitialized && user) {
+      navigate('/', { replace: true });
+    } else {
+      // Если не авторизован - на сброс пароля
+      navigate('/password-recovery', { replace: true });
+    }
+  }, [user, isInitialized, navigate]);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.spinner}></div>
-        <div className={styles.message}>Проверка ссылки восстановления...</div>
-      </div>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      backgroundColor: '#f9fafb'
+    }}>
+      <div style={{
+        width: '40px',
+        height: '40px',
+        border: '4px solid #e5e7eb',
+        borderTopColor: '#3b82f6',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite',
+        marginBottom: '16px'
+      }}></div>
+      <div style={{ color: '#6b7280', fontSize: '18px' }}>Обработка восстановления пароля...</div>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };

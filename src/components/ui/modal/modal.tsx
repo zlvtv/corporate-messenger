@@ -1,98 +1,78 @@
-// src/components/ui/Modal/Modal.tsx
+// src/components/ui/modal/modal.tsx
 import React, { useEffect, useRef } from 'react';
-import styles from './Modal.module.css';
+import styles from './modal.module.css';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
   children: React.ReactNode;
-  size?: 'small' | 'medium' | 'large';
-  anchorEl?: HTMLElement | null; // ← новый проп
-  position?: 'bottom-start' | 'bottom-end' | 'right-start'; // ← позиция
+  maxWidth?: number;
+  title?: string;
+  disableEscape?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
-  title,
   children,
-  size = 'medium',
-  anchorEl,
-  position = 'bottom-start',
+  maxWidth = 500,
+  title,
+  disableEscape = false,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
-  const handleClickOutside = (e: React.MouseEvent) => {
+  // Закрытие по клику вне
+  const handleOutsideClick = (e: React.MouseEvent) => {
     if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
       onClose();
     }
   };
 
-  // Расчёт позиции
-  let style = {};
-  if (anchorEl) {
-    const rect = anchorEl.getBoundingClientRect();
-    const space = 8;
+  // Закрытие по Escape
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !disableEscape) {
+        onClose();
+      }
+    };
 
-    switch (position) {
-      case 'bottom-start':
-        style = { top: rect.bottom + space, left: rect.left };
-        break;
-      case 'bottom-end':
-        style = { top: rect.bottom + space, right: window.innerWidth - rect.right };
-        break;
-      case 'right-start':
-        style = { top: rect.top, left: rect.right + space };
-        break;
-      default:
-        break;
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
     }
-  }
+
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [isOpen, onClose, disableEscape]);
+
+  if (!isOpen) return null;
 
   return (
     <div
-      className={styles.modal__backdrop}
-      onClick={handleClickOutside}
-      role="dialog"
-      aria-modal="true"
+      className={styles.overlay}
+      onClick={handleOutsideClick}
+      role="button"
+      tabIndex={-1}
+      aria-hidden={!isOpen}
     >
       <div
         ref={modalRef}
-        className={`${styles.modal} ${styles[`modal--${size}`]}`}
-        style={style}
+        className={styles.modal}
+        style={{ maxWidth }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title || 'Модальное окно'}
       >
-        <div className={styles.modal__header}>
-          <h2 className={styles.modal__title}>{title}</h2>
-          <button
-            className={styles.modal__closeButton}
-            onClick={onClose}
-            aria-label="Закрыть"
-          >
-            ×
-          </button>
-        </div>
-        <div className={styles.modal__content}>{children}</div>
+        <button
+          className={styles.close}
+          onClick={onClose}
+          aria-label="Закрыть"
+        >
+          ×
+        </button>
+        {title && <h2 className={styles.title}>{title}</h2>}
+        <div className={styles.content}>{children}</div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 // src/contexts/UIContext.tsx
-import { createContext, useContext, ReactNode, useState, useCallback } from 'react';
+import { createContext, useContext, ReactNode, useState, useCallback, useMemo } from 'react';
 
 interface UIState {
   theme: 'light' | 'dark';
@@ -32,7 +32,7 @@ interface UIContextType extends UIState {
 const UIContext = createContext<UIContextType | undefined>(undefined);
 
 export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isOrgInfoOpen, setIsOrgInfoOpen] = useState(false);
@@ -70,30 +70,40 @@ export const UIProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     setSelectedProjectId(id);
   }, []);
 
-  const value: UIContextType = {
-    theme,
-    isSearchOpen,
-    isProfileOpen,
-    isOrgInfoOpen,
-    isCreateProjectOpen,
-    chatWidth,
-    isBoardFullscreen,
-    selectedOrgId,
-    selectedProjectId,
-    toggleTheme,
-    openSearch,
-    closeSearch,
-    openProfile,
-    closeProfile,
-    openOrgInfo,
-    closeOrgInfo,
-    openCreateProject,
-    closeCreateProject,
-    setChatWidth: (width: number) => setChatWidth(Math.max(300, Math.min(width, 800))),
-    toggleFullscreen,
-    selectOrg,
-    selectProject,
-  };
+  const value = useMemo<UIContextType>(() => ({
+  theme,
+  isSearchOpen,
+  isProfileOpen,
+  isOrgInfoOpen,
+  isCreateProjectOpen,
+  chatWidth,
+  isBoardFullscreen,
+  selectedOrgId,
+  selectedProjectId,
+  toggleTheme,
+  openSearch,
+  closeSearch,
+  openProfile,
+  closeProfile,
+  openOrgInfo,
+  closeOrgInfo,
+  openCreateProject,
+  closeCreateProject,
+  setChatWidth: (width: number) => setChatWidth(Math.max(300, Math.min(width, 800))),
+  toggleFullscreen,
+  selectOrg,
+  selectProject,
+}), [
+  theme,
+  isSearchOpen,
+  isProfileOpen,
+  isOrgInfoOpen,
+  isCreateProjectOpen,
+  chatWidth,
+  isBoardFullscreen,
+  selectedOrgId,
+  selectedProjectId,
+]);
 
   return <UIContext.Provider value={value}>{children}</UIContext.Provider>;
 };

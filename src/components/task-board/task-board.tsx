@@ -2,7 +2,7 @@
 import React from 'react';
 import { useProject } from '../../contexts/ProjectContext';
 import TaskColumn from '../task-column/task-column';
-import styles from './TaskBoard.module.css';
+import styles from './task-board.module.css';
 
 const TaskBoard: React.FC = () => {
   const { projectStatuses, currentProject } = useProject();

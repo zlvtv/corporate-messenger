@@ -1,170 +1,102 @@
 // src/components/modals/profile-modal/profile-modal.tsx
-import React, { useRef, useState } from 'react';
-import { useOrganization } from '../../../contexts/OrganizationContext';
+import React, { useRef, useEffect, useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useUI } from '../../../contexts/UIContext';
 import styles from './profile-modal.module.css';
 
-interface ProfileModalProps {
-  anchorEl: HTMLElement;
-  onClose: () => void;
-}
-
-const ProfileModal: React.FC<ProfileModalProps> = ({ anchorEl, onClose }) => {
-  const { createOrganization, joinOrganization } = useOrganization();
+const ProfileModal: React.FC = () => {
+  const { closeProfile } = useUI();
   const { user, signOut } = useAuth();
-  const [orgName, setOrgName] = useState('');
-  const [inviteCode, setInviteCode] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [isJoining, setIsJoining] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
-  // Позиционирование — снизу справа от кнопки
-  const rect = anchorEl.getBoundingClientRect();
-  const top = rect.bottom + 8;
-  const right = window.innerWidth - rect.right;
+  // Получаем позицию кнопки
+  useEffect(() => {
+    const updatePosition = () => {
+      const button = document.querySelector('[data-profile-button]') as HTMLButtonElement;
+      if (button) {
+        const rect = button.getBoundingClientRect();
+        const top = rect.bottom - 200; // высота модалки
+        const left = rect.right + 8;
+        setPosition({ top, left });
+      }
+    };
 
-  const handleOutsideClick = (e: React.MouseEvent) => {
-    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      onClose();
-    }
-  };
+    // Запускаем синхронно
+    updatePosition();
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
+    // Подстраховка: если кнопка появилась позже
+    const timer = setTimeout(updatePosition, 50);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const handleCreateOrg = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orgName.trim()) return;
-    setIsCreating(true);
-    setError(null);
-    try {
-      await createOrganization({ name: orgName.trim() });
-      setOrgName('');
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось создать организацию');
-    } finally {
-      setIsCreating(false);
-    }
-  };
+  // Закрытие по клику мимо
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const button = document.querySelector('[data-profile-button]');
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(e.target as Node) &&
+        !button?.contains(e.target as Node)
+      ) {
+        closeProfile();
+      }
+    };
 
-  const handleJoinOrg = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inviteCode.trim()) return;
-    setIsJoining(true);
-    setError(null);
-    try {
-      await joinOrganization(inviteCode.trim());
-      setInviteCode('');
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Не удалось вступить');
-    } finally {
-      setIsJoining(false);
-    }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [closeProfile]);
 
-  const handleDeleteAccount = () => {
-    if (window.confirm('Вы уверены, что хотите удалить аккаунт? Все данные будут безвозвратно удалены.')) {
-      // Здесь должна быть логика удаления аккаунта
-      alert('Функция удаления аккаунта временно недоступна.');
-    }
-  };
+  // Пока позиция не найдена — ничего не рендерим
+  if (!position) {
+    return null;
+  }
 
   return (
     <div
-      className={styles['profile-backdrop']}
-      onClick={handleOutsideClick}
-      onKeyDown={handleKeyDown}
+      ref={modalRef}
+      className={styles['profile-modal']}
+      style={{
+        position: 'fixed',
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        minWidth: '220px',
+        zIndex: 1000,
+        transform: 'none',
+      }}
       role="dialog"
-      aria-modal="true"
+      aria-label="Профиль пользователя"
     >
-      <div
-        ref={modalRef}
-        className={styles['profile-modal']}
-        style={{ top, right }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className={styles['profile-modal__title']}>Профиль</h3>
-
-        {error && <p className={styles['profile-modal__error']}>{error}</p>}
-
-        <div className={styles['profile-modal__section']}>
-          <h4 className={styles['profile-modal__section-title']}>Email</h4>
-          <p>{user?.email}</p>
+      <div className={styles['profile-modal__content']}>
+        <div className={styles['profile-modal__header']}>
+          <h3>Профиль</h3>
         </div>
-
-        <div className={styles['profile-modal__section']}>
-          <h4 className={styles['profile-modal__section-title']}>Создать организацию</h4>
-          <form onSubmit={handleCreateOrg}>
-            <input
-              type="text"
-              className={styles['profile-modal__input']}
-              placeholder="Название организации"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              disabled={isCreating}
-            />
-            <button
-              type="submit"
-              className={styles['profile-modal__btn']}
-              disabled={isCreating || !orgName.trim()}
-            >
-              {isCreating ? 'Создание...' : 'Создать'}
-            </button>
-          </form>
+        <div className={styles['profile-modal__body']}>
+          <p><strong>Имя:</strong> {user?.full_name || user?.username || 'Без имени'}</p>
+          <p><strong>Email:</strong> {user?.email || 'Не указан'}</p>
         </div>
-
-        <div className={styles['profile-modal__section']}>
-          <h4 className={styles['profile-modal__section-title']}>Вступить в организацию</h4>
-          <form onSubmit={handleJoinOrg}>
-            <input
-              type="text"
-              className={styles['profile-modal__input']}
-              placeholder="Код приглашения"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-              disabled={isJoining}
-            />
-            <button
-              type="submit"
-              className={styles['profile-modal__btn']}
-              disabled={isJoining || !inviteCode.trim()}
-            >
-              {isJoining ? 'Проверка...' : 'Вступить'}
-            </button>
-          </form>
-        </div>
-
-        <div className={styles['profile-modal__section']}>
+        <div className={styles['profile-modal__footer']}>
           <button
-            className={styles['profile-modal__action-btn']}
-            onClick={() => alert('Редактирование профиля временно недоступно')}
+            className={styles['profile-modal__btn']}
+            onClick={closeProfile}
           >
-            Редактировать профиль
+            Закрыть
+          </button>
+          <button
+            className={`${styles['profile-modal__btn']} ${styles['profile-modal__btn_logout']}`}
+            onClick={async () => {
+              try {
+                await signOut();
+              } catch (err) {
+                console.error('Ошибка выхода:', err);
+              }
+            }}
+          >
+            Выйти
           </button>
         </div>
-
-        <div className={styles['profile-modal__section']}>
-          <button
-            className={styles['profile-modal__action-btn'] + ' ' + styles['profile-modal__action-btn--danger']}
-            onClick={handleDeleteAccount}
-          >
-            Удалить аккаунт
-          </button>
-        </div>
-
-        <button
-          className={styles['profile-modal__close']}
-          onClick={onClose}
-          aria-label="Закрыть"
-        >
-          ×
-        </button>
       </div>
     </div>
   );

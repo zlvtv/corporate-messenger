@@ -1,7 +1,7 @@
 // src/components/chat/ProjectChat/ProjectChat.tsx
 import React from 'react';
-import { useProject } from '../../../contexts/ProjectContext';
-import styles from './ProjectChat.module.css';
+import { useProject } from '../../contexts/ProjectContext';
+import styles from './project-chat.module.css';
 
 const ProjectChat: React.FC = () => {
   const { currentProject } = useProject();
