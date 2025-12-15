@@ -1,17 +1,25 @@
 // src/pages/Login/Login.tsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import Button from '../../components/ui/button/button';
-import Input from '../../components/ui/input/input';
 import styles from './Login.module.css';
+
+const translateError = (message: string): string => {
+  if (message.includes('Invalid login credentials')) {
+    return 'Неверный email или пароль';
+  }
+  if (message.includes('Email not confirmed')) {
+    return 'Email не подтверждён. Проверьте почту';
+  }
+  return 'Ошибка входа. Попробуйте снова';
+};
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   const { signIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,62 +28,87 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await signIn(email, password);
-      // После успешного входа AuthContext обновит состояние и AppRoutes перенаправит
+      await signIn(email.trim(), password);
+      navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Ошибка входа');
+      setError(translateError(err.message));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className={styles.login}>
-      <div className={styles.login__card}>
-        <h1 className={styles.login__logo}>TeamBridge</h1>
-        <h1 className={styles.login__title}>Добро пожаловать!</h1>
+    <div className={styles.container}>
+      <div className={styles.formWrapper}>
+        <h1 className={styles.title}>Войти в аккаунт</h1>
+        <p className={styles.subtitle}>Введите свои данные, чтобы продолжить</p>
 
-        <form onSubmit={handleSubmit} className={styles.login__form}>
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            disabled={isLoading}
-          />
+        {error && <div className={styles.error}>{error}</div>}
 
-          <Input
-            type="password"
-            placeholder="Пароль"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            disabled={isLoading}
-            autoComplete="current-password"
-          />
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <div className={styles.field}>
+            <label htmlFor="email" className={styles.label}>
+              Электронная почта
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              required
+              disabled={isLoading}
+              className={styles.input}
+            />
+          </div>
 
-          {error && (
-            <div className={styles.login__error} role="alert">
-              {error}
-            </div>
-          )}
+          <div className={styles.field}>
+            <label htmlFor="password" className={styles.label}>
+              Пароль
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              disabled={isLoading}
+              className={styles.input}
+            />
+          </div>
 
-          <Button
+          <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.link}
+              onClick={() => navigate('/password-recovery')}
+              disabled={isLoading}
+            >
+              Забыли пароль?
+            </button>
+          </div>
+
+          <button
             type="submit"
-            variant="primary"
+            className={styles.submit}
             disabled={isLoading}
-            className={styles.login__button}
           >
             {isLoading ? 'Вход...' : 'Войти'}
-          </Button>
-
-          <div className={styles.login__links}>
-            <Link to="/password-recovery" className={styles.login__link}>
-              Забыли пароль?
-            </Link>
-          </div>
+          </button>
         </form>
+
+        <p className={styles.footer}>
+          Нет аккаунта?{' '}
+          <button
+            type="button"
+            className={styles.link}
+            onClick={() => navigate('/signup')}
+            disabled={isLoading}
+          >
+            Зарегистрироваться
+          </button>
+        </p>
       </div>
     </div>
   );

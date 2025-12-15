@@ -6,12 +6,15 @@ import styles from './settings-panel.module.css';
 
 const SettingsPanel: React.FC = () => {
   const { theme, toggleTheme, isProfileOpen, openProfile } = useUI();
-
+  const handleThemeClick = () => {
+    console.log('🌙 [SettingsPanel] Кнопка темы нажата');
+    toggleTheme();
+  };
   return (
     <div className={styles['settings-panel']}>
       <button
         className={styles['settings-panel__theme-btn']}
-        onClick={toggleTheme}
+        onClick={handleThemeClick}
         aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
       >
         {theme === 'dark' ? '🔆' : '🌙'}

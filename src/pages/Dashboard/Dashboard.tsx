@@ -7,20 +7,27 @@ import ChatHeader from '../../components/chat-header/chat-header';
 import ProjectChat from '../../components/project-chat/project-chat';
 import TaskBoard from '../../components/task-board/task-board';
 import ResizableSplitter from '../../components/resizable-splitter/resizable-splitter';
+import EmptyDashboard from '../../components/empty-dashboard/EmptyDashboard'; // ✅ Новый компонент
 import styles from './Dashboard.module.css';
-import LoadingState from '../../components/ui/loading/LoadingState';
 import { useUI } from '../../contexts/UIContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { useProject } from '../../contexts/ProjectContext';
 
 const Dashboard: React.FC = () => {
   const { isBoardFullscreen, theme, chatWidth } = useUI();
-  const { currentOrganization } = useOrganization();
+  const { user } = useAuth();
+  const { organizations, currentOrganization, isLoading: orgLoading } = useOrganization();
   const { currentProject } = useProject();
 
-  // Показываем лоадер, пока организация не выбрана
-  if (!currentOrganization) {
-    return <LoadingState message="Загрузка..." />;
+  // ✅ Показываем лоадер ТОЛЬКО при инициализации, не при отсутствии орг
+  if (orgLoading) {
+    return <div className={styles.loading}>Загрузка организаций...</div>;
+  }
+
+  // ✅ Если нет организаций — показываем пустой экран с подсказкой
+  if (organizations.length === 0) {
+    return <EmptyDashboard />;
   }
 
   return (
@@ -38,7 +45,7 @@ const Dashboard: React.FC = () => {
               className={styles['dashboard__chat']}
               style={{ width: `${chatWidth}px` }}
             >
-              <ProjectChat />
+              {currentProject ? <ProjectChat /> : <div className={styles['chat-placeholder']}>Выберите проект</div>}
             </div>
             <ResizableSplitter />
             <div className={styles['dashboard__board']}>

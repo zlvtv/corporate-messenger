@@ -1,4 +1,3 @@
-// src/components/resizable-splitter/resizable-splitter.tsx
 import React, { useRef, useEffect } from 'react';
 import { useUI } from '../../contexts/UIContext';
 import styles from './resizable-splitter.module.css';
@@ -10,21 +9,23 @@ const ResizableSplitter: React.FC = () => {
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingRef.current || !splitterRef.current) return;
-      const newWidth = e.clientX - splitterRef.current.getBoundingClientRect().width / 2;
-      setChatWidth(newWidth);
+      if (!isDraggingRef.current) return;
+      const newWidth = e.clientX - 100; // 100 = отступ слева (org-icon-panel + отступ)
+      if (newWidth >= 300 && newWidth <= 800) {
+        setChatWidth(newWidth);
+      }
     };
 
     const handleMouseUp = () => {
-      isDraggingRef.current = false;
-      document.body.style.userSelect = 'auto';
-      document.body.style.cursor = 'default';
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+      }
     };
 
-    if (isDraggingRef.current) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
@@ -32,18 +33,18 @@ const ResizableSplitter: React.FC = () => {
     };
   }, [setChatWidth]);
 
-  const handleMouseDown = () => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     isDraggingRef.current = true;
-    document.body.style.userSelect = 'none';
     document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
   };
 
   return (
     <div
       ref={splitterRef}
-      className={styles['resizable-splitter']}
+      className={styles.splitter}
       onMouseDown={handleMouseDown}
-      aria-label="Разделитель окон"
       title="Перетащите, чтобы изменить ширину"
     />
   );

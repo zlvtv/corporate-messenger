@@ -1,0 +1,32 @@
+/* src/components/modals/create-organization-modal/create-organization-modal.module.css */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 360px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.errorMessage {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: -4px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}

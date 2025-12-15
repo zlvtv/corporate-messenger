@@ -1,45 +1,38 @@
+// src/pages/RecoveryCallback/RecoveryCallback.tsx
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+import styles from './RecoveryCallback.module.css';
 
 const RecoveryCallback: React.FC = () => {
-  const { user, isInitialized } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Если уже инициализировали и пользователь есть - на дашборд
-    if (isInitialized && user) {
-      navigate('/', { replace: true });
-    } else {
-      // Если не авторизован - на сброс пароля
-      navigate('/password-recovery', { replace: true });
-    }
-  }, [user, isInitialized, navigate]);
+    const handleCallback = async () => {
+      // Проверяем сессию
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (error || !data.session) {
+        console.warn('⚠️ [Recovery] Нет активной сессии. Перенаправляем на восстановление');
+        // Нет сессии — возможно, ссылка устарела
+        navigate('/password-recovery', { replace: true });
+        return;
+      }
+
+      // Есть сессия — переходим к смене пароля
+      console.log('✅ [Recovery] Сессия найдена. Переход на сброс пароля');
+      navigate('/reset-password', { replace: true });
+    };
+
+    handleCallback();
+  }, [navigate]);
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100vh',
-      backgroundColor: '#f9fafb'
-    }}>
-      <div style={{
-        width: '40px',
-        height: '40px',
-        border: '4px solid #e5e7eb',
-        borderTopColor: '#3b82f6',
-        borderRadius: '50%',
-        animation: 'spin 1s linear infinite',
-        marginBottom: '16px'
-      }}></div>
-      <div style={{ color: '#6b7280', fontSize: '18px' }}>Обработка восстановления пароля...</div>
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+    <div className={styles.container}>
+      <div className={styles.card}>
+        <div className={styles.spinner}></div>
+        <div className={styles.message}>Обработка ссылки восстановления...</div>
+      </div>
     </div>
   );
 };

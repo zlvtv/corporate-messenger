@@ -15,8 +15,10 @@ const MainHeader: React.FC = () => {
 
   const handleInfoClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     setInfoBtnEl(e.currentTarget);
-    openOrgInfo();
+    console.log('ℹ️ [MainHeader] Кнопка информации нажата');
+    openOrgInfo(); // Это должно сработать
   };
+
 
   return (
     <>

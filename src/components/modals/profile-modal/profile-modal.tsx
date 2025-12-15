@@ -9,28 +9,29 @@ const ProfileModal: React.FC = () => {
   const { user, signOut } = useAuth();
   const modalRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const [isLoading, setIsLoading] = useState(false); // Лоадер для выхода
 
-  // Получаем позицию кнопки
+  // Обновляем позицию при монтировании
   useEffect(() => {
     const updatePosition = () => {
       const button = document.querySelector('[data-profile-button]') as HTMLButtonElement;
       if (button) {
         const rect = button.getBoundingClientRect();
-        const top = rect.bottom - 200; // высота модалки
+        const top = rect.bottom - 200; // Пример высоты модалки
         const left = rect.right + 8;
         setPosition({ top, left });
       }
     };
 
-    // Запускаем синхронно
+    // Синхронно устанавливаем позицию
     updatePosition();
 
-    // Подстраховка: если кнопка появилась позже
+    // Подстраховка: если кнопка не успела отрендериться
     const timer = setTimeout(updatePosition, 50);
     return () => clearTimeout(timer);
   }, []);
 
-  // Закрытие по клику мимо
+  // Закрытие при клике вне
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const button = document.querySelector('[data-profile-button]');
@@ -49,7 +50,19 @@ const ProfileModal: React.FC = () => {
     };
   }, [closeProfile]);
 
-  // Пока позиция не найдена — ничего не рендерим
+  // Обработчик выхода
+  const handleSignOut = async () => {
+    setIsLoading(true);
+    try {
+      await signOut(); // Уже не вызывает closeProfile внутри
+      closeProfile(); // ✅ Закрываем модалку
+    } catch (err) {
+      console.error('Ошибка при выходе:', err);
+      setIsLoading(false);
+    }
+  };
+
+  // Пока позиция не определена — не рендерим
   if (!position) {
     return null;
   }
@@ -62,9 +75,8 @@ const ProfileModal: React.FC = () => {
         position: 'fixed',
         top: `${position.top}px`,
         left: `${position.left}px`,
-        minWidth: '220px',
+        minWidth: '240px',
         zIndex: 1000,
-        transform: 'none',
       }}
       role="dialog"
       aria-label="Профиль пользователя"
@@ -73,28 +85,30 @@ const ProfileModal: React.FC = () => {
         <div className={styles['profile-modal__header']}>
           <h3>Профиль</h3>
         </div>
+
         <div className={styles['profile-modal__body']}>
-          <p><strong>Имя:</strong> {user?.full_name || user?.username || 'Без имени'}</p>
-          <p><strong>Email:</strong> {user?.email || 'Не указан'}</p>
+          <p>
+            <strong>Имя:</strong> {user?.full_name || user?.username || 'Без имени'}
+          </p>
+          <p>
+            <strong>Email:</strong> {user?.email || 'Не указан'}
+          </p>
         </div>
+
         <div className={styles['profile-modal__footer']}>
           <button
             className={styles['profile-modal__btn']}
             onClick={closeProfile}
+            disabled={isLoading}
           >
             Закрыть
           </button>
           <button
             className={`${styles['profile-modal__btn']} ${styles['profile-modal__btn_logout']}`}
-            onClick={async () => {
-              try {
-                await signOut();
-              } catch (err) {
-                console.error('Ошибка выхода:', err);
-              }
-            }}
+            onClick={handleSignOut}
+            disabled={isLoading}
           >
-            Выйти
+            {isLoading ? 'Выход...' : 'Выйти'}
           </button>
         </div>
       </div>

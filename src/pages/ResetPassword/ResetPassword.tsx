@@ -1,104 +1,124 @@
 // src/pages/ResetPassword/ResetPassword.tsx
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/button/button';
-import Input from '../../components/ui/input/input';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 import styles from './ResetPassword.module.css';
 
 const ResetPassword: React.FC = () => {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isAuthLoading && user) {
-      navigate('/', { replace: true });
-    }
-  }, [user, isAuthLoading, navigate]);
-
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('access_token');
 
-  if (isAuthLoading) {
-    return <div className={styles.reset}>Загрузка...</div>;
-  }
-
-  if (user) {
-    return null;
-  }
+  // Если нет токена — нельзя сбрасывать
+  useEffect(() => {
+    if (!token) {
+      setError('Неверная ссылка. Пожалуйста, запросите новую.');
+    }
+  }, [token]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoadingForm(true);
+    setSuccess(false);
 
     if (password !== confirmPassword) {
       setError('Пароли не совпадают');
-      setIsLoadingForm(false);
       return;
     }
+
+    if (password.length < 6) {
+      setError('Пароль должен быть не менее 6 символов');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
 
       setSuccess(true);
-      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(`Ошибка: ${message}`);
+      setError('Не удалось обновить пароль. Ссылка могла устареть.');
     } finally {
-      setIsLoadingForm(false);
+      setIsLoading(false);
     }
   };
 
+  if (!token) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.formWrapper}>
+          <h1 className={styles.title}>Ошибка</h1>
+          <p className={styles.error}>Неверная или устаревшая ссылка</p>
+          <button className={styles.submit} onClick={() => navigate('/forgot-password')}>
+            Запросить новую
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={styles.reset}>
-      <div className={styles.reset__card}>
-        <h1 className={styles.reset__title}>Новый пароль</h1>
+    <div className={styles.container}>
+      <div className={styles.formWrapper}>
+        <h1 className={styles.title}>Новый пароль</h1>
+        <p className={styles.subtitle}>Введите новый пароль для аккаунта</p>
 
+        {error && <div className={styles.error}>{error}</div>}
         {success ? (
-          <div className={styles.reset__success}>
-            Пароль изменён! Через 2 секунды перейдёте ко входу.
-          </div>
+          <>
+            <p className={styles.success}>Пароль успешно изменён!</p>
+            <button className={styles.submit} onClick={() => navigate('/login')}>
+              Войти
+            </button>
+          </>
         ) : (
-          <form onSubmit={handleSubmit} className={styles.reset__form}>
-            <Input
-              type="password"
-              placeholder="Новый пароль"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoadingForm}
-              autoComplete="new-password"
-            />
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.field}>
+              <label htmlFor="password" className={styles.label}>
+                Новый пароль
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={isLoading}
+                className={styles.input}
+              />
+            </div>
 
-            <Input
-              type="password"
-              placeholder="Подтвердите пароль"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              disabled={isLoadingForm}
-            />
+            <div className={styles.field}>
+              <label htmlFor="confirm" className={styles.label}>
+                Подтвердите пароль
+              </label>
+              <input
+                id="confirm"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                disabled={isLoading}
+                className={styles.input}
+              />
+            </div>
 
-            {error && (
-              <div className={styles.reset__error} role="alert">
-                {error}
-              </div>
-            )}
-
-            <Button
+            <button
               type="submit"
-              variant="primary"
-              disabled={isLoadingForm}
-              className={styles.reset__button}
+              className={styles.submit}
+              disabled={isLoading}
             >
-              {isLoadingForm ? 'Сохранение...' : 'Сохранить'}
-            </Button>
+              {isLoading ? 'Сохранение...' : 'Сохранить'}
+            </button>
           </form>
         )}
       </div>

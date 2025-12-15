@@ -1,53 +1,43 @@
 /* src/components/modals/org-info-modal/org-info-modal.module.css */
-.org-info-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.2);
-  z-index: 1000;
-}
-
-.org-info-modal {
-  position: absolute;
+.modal {
   background: var(--color-surface);
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-medium);
   width: 360px;
   max-height: 500px;
   overflow-y: auto;
-  border: 1px solid #e2e8f0;
   padding: 16px;
-  right: 0;
-  top: 0;
+  font-size: 14px;
+  color: var(--color-text);
   animation: slideInUp 0.2s ease;
 }
 
-.org-info-modal__title {
-  margin: 0 40px 16px 0;
-  padding: 0;
-  font-size: 1.2rem;
+.title {
+  margin: 0 0 12px 0;
+  font-size: 1.25rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: var(--color-primary);
 }
 
-.org-info-modal__section {
+.section {
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.org-info-modal__section > strong {
+.section > strong {
   display: block;
   margin-bottom: 8px;
-  color: var(--color-text);
 }
 
-.org-info-modal__invite-code {
+.inviteCode {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.org-info-modal__invite-code code {
+.inviteCode code {
   background: #f1f5f9;
   padding: 4px 8px;
   border-radius: 4px;
@@ -56,22 +46,7 @@
   flex: 1;
 }
 
-.org-info-modal__regen-btn {
-  padding: 6px 12px;
-  background: var(--color-primary);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.org-info-modal__regen-btn:disabled {
-  background: #a0aec0;
-  cursor: not-allowed;
-}
-
-.org-info-modal__members {
+.members {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -79,14 +54,13 @@
   overflow-y: auto;
 }
 
-.org-info-modal__member {
+.member {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
 }
 
-.org-info-modal__avatar {
+.avatar {
   width: 32px;
   height: 32px;
   background: var(--color-primary);
@@ -99,7 +73,7 @@
   flex-shrink: 0;
 }
 
-.org-info-modal__role {
+.role {
   font-size: 12px;
   color: var(--color-text-light);
   background: #e2e8f0;
@@ -108,59 +82,11 @@
   margin-left: auto;
 }
 
-.org-info-modal__actions {
+.actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-top: 16px;
-}
-
-.org-info-modal__btn {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  text-align: center;
-}
-
-.org-info-modal__btn--secondary {
-  background: #f1f5f9;
-  color: var(--color-text);
-}
-
-.org-info-modal__btn--secondary:hover {
-  background: #e2e8f0;
-}
-
-.org-info-modal__btn--danger {
-  background: #ef4444;
-  color: white;
-}
-
-.org-info-modal__btn--danger:hover {
-  background: #dc2626;
-}
-
-.org-info-modal__close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.org-info-modal__close:hover {
-  background: #f1f5f9;
 }
 
 @keyframes slideInUp {
@@ -175,32 +101,19 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  .org-info-modal {
+  .modal {
     background: #2c2c2e;
     border-color: #333;
   }
-  .org-info-modal__section {
+  .section {
     border-bottom-color: #333;
   }
-  .org-info-modal__invite-code code {
+  .inviteCode code {
     background: #333;
     color: #f0f0f0;
   }
-  .org-info-modal__regen-btn {
-    background: var(--color-primary);
-  }
-  .org-info-modal__members {
-    color: #f0f0f0;
-  }
-  .org-info-modal__role {
+  .role {
     background: #4a4a4a;
     color: #ccc;
-  }
-  .org-info-modal__btn--secondary {
-    background: #3a3a3c;
-    color: #f0f0f0;
-  }
-  .org-info-modal__btn--secondary:hover {
-    background: #4a4a4c;
   }
 }

@@ -50,6 +50,26 @@ async function getUserProfile(userId: string): Promise<UserProfile | null> {
   }
 }
 
+const translateAuthError = (message: string): string => {
+  const map: Record<string, string> = {
+    'Invalid login credentials': 'Неверный email или пароль',
+    'Email not confirmed': 'Email не подтверждён. Проверьте почту',
+    'Email rate limit exceeded': 'Слишком много попыток. Попробуйте позже',
+    'User already registered': 'Пользователь с таким email уже существует',
+    'Password should be at least 6 characters': 'Пароль должен быть не менее 6 символов',
+    'The email address is invalid': 'Неверный формат email',
+    'User not found': 'Пользователь с таким email не найден',
+    'Invalid confirmation token': 'Неверная или устаревшая ссылка',
+    'Token has expired': 'Ссылка устарела',
+  };
+
+  for (const [key, value] of Object.entries(map)) {
+    if (message.includes(key)) return value;
+  }
+
+  return 'Произошла ошибка. Попробуйте снова';
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<{
     user: UserProfile | null;
@@ -99,69 +119,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Функция для обработки сессии
     const processSession = async (session: any, source: string) => {
-  console.log(`👤 [Auth] Обработка сессии (${source}):`, session ? 'есть' : 'нет');
-  
-  if (!isMounted) {
-    console.log('🚫 [Auth] Компонент размонтирован, пропускаем');
-    return;
-  }
-  
-  if (session?.user) {
-    console.log(`✅ [Auth] ${source}: Найден пользователь:`, session.user.email);
-    
-    try {
-      // Добавляем таймаут 3 секунды
-      const profilePromise = getUserProfile(session.user.id);
-      const timeout = new Promise<null>((_, reject) => 
-  setTimeout(() => reject(new Error('Timeout')), 1000) // было 3000
-);
-
-      const profile = await Promise.race([profilePromise, timeout]);
+      console.log(`👤 [Auth] Обработка сессии (${source}):`, session ? 'есть' : 'нет');
       
-      const userProfile: UserProfile = {
-        id: session.user.id,
-        email: session.user.email || '',
-        username: profile?.username || session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-        full_name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
-        avatar_url: profile?.avatar_url || null,
-      };
-
-      console.log(`🎉 [Auth] ${source}: Пользователь готов:`, userProfile.email);
-      updateAuthState(userProfile);
-    } catch (error) {
-      console.warn(`⚠️ [Auth] Пропускаем профиль из-за ошибки:`, error);
+      if (!isMounted) {
+        console.log('🚫 [Auth] Компонент размонтирован, пропускаем');
+        return;
+      }
       
-      // Создаём пользователя без профиля
-      const userProfile: UserProfile = {
-        id: session.user.id,
-        email: session.user.email || '',
-        username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-        full_name: session.user.user_metadata?.full_name || 'User',
-      };
+      if (session?.user) {
+        console.log(`✅ [Auth] ${source}: Найден пользователь:`, session.user.email);
+        
+        let profile = null;
+        
+        try {
+          const profilePromise = getUserProfile(session.user.id);
+          const timeout = new Promise<null>((resolve) => 
+            setTimeout(() => resolve(null), 1000)
+          );
+          
+          profile = await Promise.race([profilePromise, timeout]);
+        } catch (error) {
+          console.warn(`⚠️ [Auth] Ошибка при загрузке профиля:`, error);
+        }
+        
+        const userProfile: UserProfile = {
+          id: session.user.id,
+          email: session.user.email || '',
+          username: profile?.username || session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+          full_name: profile?.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+          avatar_url: profile?.avatar_url || session.user.user_metadata?.avatar_url || null,
+        };
 
-      updateAuthState(userProfile);
-    }
-  } else {
-    console.log(`👤 [Auth] ${source}: Нет сессии`);
-    updateAuthState(null);
-  }
-};
-
+        console.log(`🎉 [Auth] ${source}: Пользователь готов:`, userProfile.email);
+        updateAuthState(userProfile);
+      } else {
+        console.log(`👤 [Auth] ${source}: Нет сессии`);
+        updateAuthState(null);
+      }
+    };
 
     // Основная функция инициализации
     const initialize = async () => {
       try {
-        // 1. Сначала подписываемся на изменения
+        // Подписываемся на изменения
         console.log('🔔 [Auth] Настраиваем слушатель auth state change');
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
             console.log(`🔔 [Auth] Событие: ${event}`);
             
-            // Обрабатываем только важные события
+            // ⚠️ Закрытие модалок — уже не здесь!
+            // → Перенесено в ProfileButton
+
             if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
               await processSession(session, `event-${event}`);
             } else if (event === 'TOKEN_REFRESHED') {
-              // Просто обновляем флаги
               setState(prev => ({
                 ...prev,
                 isLoading: false,
@@ -171,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         );
 
-        // 2. Затем получаем начальную сессию
+        // Получаем начальную сессию
         console.log('🔄 [Auth] Получаем начальную сессию...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -182,9 +193,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         console.log('🔄 [Auth] Начальная сессия получена:', session ? 'есть' : 'нет');
-        
-        // 3. Обрабатываем начальную сессию
-        await processSession(session, 'initial');
+
+        // 🔥 ПРОВЕРКА: существует ли пользователь?
+        if (session) {
+          try {
+            // Это вызывает /auth/v1/user → может вернуть 403
+            const { data: userData, error: userError } = await supabase.auth.getUser();
+
+            if (userError) {
+              console.warn('⚠️ [Auth] Пользователь не существует:', userError.message);
+              await supabase.auth.signOut();
+              updateAuthState(null);
+              window.location.href = '/login'; // ✅ Безопасный редирект
+              return subscription;
+            }
+
+            await processSession(session, 'initial');
+          } catch (err: any) {
+            console.error('❌ [Auth] Ошибка при проверке пользователя:', err);
+            
+            if (err.message.includes('User from sub claim') || err.status === 403) {
+              await supabase.auth.signOut();
+              updateAuthState(null);
+              window.location.href = '/login'; // ✅
+              return subscription;
+            }
+
+            updateAuthState(null);
+          }
+        } else {
+          updateAuthState(null);
+        }
 
         return subscription;
       } catch (error) {
@@ -200,7 +239,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🧹 [Auth] Очистка');
       isMounted = false;
       
-      // Отписываемся от изменений
       subscriptionPromise.then(subscription => {
         if (subscription) {
           subscription.unsubscribe();
@@ -211,22 +249,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string, username: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { username },
-        },
-      });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { username },
+    },
+  });
 
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Ошибка регистрации:', error);
-      throw error;
-    }
-  };
+  // ✅ НЕ выбрасываем ошибку! Возвращаем оба значения
+  return { data, error };
+};
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -242,7 +275,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      setState(prev => ({ ...prev, user: null }));
     } catch (error) {
       console.error('Ошибка выхода:', error);
       throw error;

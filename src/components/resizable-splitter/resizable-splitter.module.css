@@ -26,6 +26,37 @@
   background: #6b7280;
 }
 
+.splitter {
+  width: 6px;
+  background: #e2e8f0;
+  cursor: col-resize;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.splitter::after {
+  content: '⋮';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: #94a3b8;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.splitter:hover::after,
+.splitter:active::after {
+  opacity: 1;
+}
+
+.splitter:hover {
+  background: #cbd5e1;
+}
+
+/* Активный режим — курсор уже col-resize */
+
 @media (prefers-color-scheme: dark) {
   .resizable-splitter {
     background: #3a3a3c;

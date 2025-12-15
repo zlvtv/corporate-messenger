@@ -39,6 +39,8 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     useState<OrganizationWithMembers | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastCreatedOrgName, setLastCreatedOrgName] = useState<string | null>(null);
+
 
   const loadOrganizations = useCallback(async () => {
     setIsLoading(true);
@@ -70,15 +72,17 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [currentOrganization?.id]);
 
   const createOrganization = async (data: CreateOrganizationData) => {
-    setError(null);
-    try {
-      await organizationService.createOrganization(data);
-      await loadOrganizations();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка создания');
-      throw err;
-    }
-  };
+  setError(null);
+  try {
+    await organizationService.createOrganization(data);
+    setLastCreatedOrgName(data.name); // ✅ Запоминаем имя
+    await loadOrganizations();
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Ошибка создания');
+    throw err;
+  }
+};
+
 
   const joinOrganization = async (inviteCode: string) => {
     setError(null);
@@ -152,6 +156,8 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({
     refreshCurrentOrganization,
     regenerateInviteCode,
     deactivateInviteCode,
+    lastCreatedOrgName,
+    setLastCreatedOrgName,
     deleteOrganization,
   };
 

@@ -1,102 +1,134 @@
 // src/pages/ForgotPassword/ForgotPassword.tsx
-import React, { useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/button/button';
-import Input from '../../components/ui/input/input';
+import { supabase } from '../../lib/supabase';
 import styles from './ForgotPassword.module.css';
 
+const translateError = (message: string): string => {
+  if (message.includes('Email not allowed')) {
+    return 'Этот email не разрешён для регистрации';
+  }
+  if (message.includes('Email rate limit exceeded')) {
+    return 'Слишком много попыток. Подождите 1 минуту';
+  }
+  return 'Не удалось отправить запрос. Повторите попытку';
+};
+
 const ForgotPassword: React.FC = () => {
-  const { user, isLoading: isAuthLoading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isAuthLoading && user) {
-      navigate('/', { replace: true });
-    }
-  }, [user, isAuthLoading, navigate]);
-
   const [email, setEmail] = useState('');
-  const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  if (isAuthLoading) {
-    return <div className={styles.forgot}>Загрузка...</div>;
-  }
+  const checkIfUserExists = async (email: string): Promise<boolean> => {
+    const { data, error } = await supabase
+      .rpc('is_email_registered', { user_email: email });
 
-  if (user) {
-    return null;
-  }
+    if (error) {
+      console.error('Ошибка RPC is_email_registered:', error);
+      // В случае ошибки — не блокируем, считаем, что может существовать
+      return false;
+    }
+
+    return data;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setIsLoadingForm(true);
-    setSuccess(false);
+    setIsLoading(true);
+    const emailTrimmed = email.trim();
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/recovery/callback`,
+      // ✅ 1. Проверяем, существует ли подтверждённый пользователь
+      const userExists = await checkIfUserExists(emailTrimmed);
+
+      if (!userExists) {
+        setError('Пользователь с таким email не найден');
+        return;
+      }
+
+      // ✅ 2. Отправляем письмо
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailTrimmed, {
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
-      if (error) throw error;
+      if (resetError) {
+        // Это редкая ошибка (сеть, рейт-лимит и т.п.)
+        setError(translateError(resetError.message));
+        return;
+      }
 
+      // ✅ Успешно
       setSuccess(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(`Ошибка: ${message}`);
+      setError('Произошла ошибка. Повторите попытку.');
     } finally {
-      setIsLoadingForm(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className={styles.forgot}>
-      <div className={styles.forgot__card}>
-        <h1 className={styles.forgot__title}>Восстановление пароля</h1>
-        <p className={styles.forgot__subtitle}>
-          Введите email — отправим ссылку для сброса пароля.
-        </p>
+    <div className={styles.container}>
+      <div className={styles.formWrapper}>
+        <h1 className={styles.title}>
+          {success ? 'Проверьте почту' : 'Восстановление пароля'}
+        </h1>
 
         {success ? (
-          <div className={styles.forgot__success}>
-            Письмо отправлено! Проверьте почту.
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className={styles.forgot__form}>
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoadingForm}
-            />
-
-            {error && (
-              <div className={styles.forgot__error} role="alert">
-                {error}
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isLoadingForm || !email}
-              className={styles.forgot__button}
-            >
-              {isLoadingForm ? 'Отправка...' : 'Отправить ссылку'}
-            </Button>
-
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className={styles.forgot__back}
-            >
-              Назад ко входу
+          <>
+            <p className={styles.subtitle}>
+              На адрес <strong>{email}</strong> отправлено письмо с инструкциями.
+            </p>
+            <p className={styles.tip}>
+              Если письмо не пришло — проверьте папку «Спам».
+            </p>
+            <button className={styles.submit} onClick={() => navigate('/login')}>
+              Войти
             </button>
-          </form>
+          </>
+        ) : (
+          <>
+            <p className={styles.subtitle}>
+              Введите email, чтобы получить ссылку для восстановления пароля
+            </p>
+
+            {error && <div className={styles.error}>{error}</div>}
+
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.field}>
+                <label htmlFor="email" className={styles.label}>
+                  Электронная почта
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  required
+                  disabled={isLoading}
+                  className={styles.input}
+                />
+              </div>
+
+              <button type="submit" className={styles.submit} disabled={isLoading}>
+                {isLoading ? 'Отправка...' : 'Отправить ссылку'}
+              </button>
+            </form>
+
+            <p className={styles.footer}>
+              <button
+                type="button"
+                className={styles.link}
+                onClick={() => navigate('/login')}
+                disabled={isLoading}
+              >
+                ← Назад ко входу
+              </button>
+            </p>
+          </>
         )}
       </div>
     </div>

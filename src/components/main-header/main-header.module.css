@@ -6,9 +6,11 @@
   padding: 16px 24px;
   background: var(--color-surface);
   border-radius: 16px 16px 0 0;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
   font-weight: 600;
   color: var(--color-text);
+  min-height: 72px;
+  box-sizing: border-box;
 }
 
 .main-header__title {
@@ -25,10 +27,17 @@
   padding: 8px;
   border-radius: 50%;
   transition: background 0.2s;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
 }
 
 .main-header__info-btn:hover {
-  background: #f1f5f9;
+  background: var(--color-text-light);
+  background-color: rgba(100, 116, 139, 0.1);
 }
 
 @media (prefers-color-scheme: dark) {

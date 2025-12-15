@@ -1,11 +1,5 @@
-/* globals.css */
+/* src/styles/globals.css */
 @import './variables.css';
-
-:root {
-  --color-primary: #2563eb;
-  --color-danger: #ef4444;
-  min-height: 100vh;
-}
 
 * {
   box-sizing: border-box;
