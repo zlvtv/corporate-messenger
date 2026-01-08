@@ -1,4 +1,3 @@
-// src/types/organization.types.ts
 export interface OrganizationMember {
   id: string;
   organization_id: string;
@@ -28,9 +27,4 @@ export interface OrganizationInvite {
   token: string;
   expires_at: string;
   invite_link: string;
-}
-
-export interface CreateOrganizationData {
-  name: string;
-  description?: string;
 }

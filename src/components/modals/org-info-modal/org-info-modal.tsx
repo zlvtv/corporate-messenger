@@ -121,7 +121,13 @@ const OrgInfoModal: React.FC<OrgInfoModalProps> = ({ anchorEl, onClose }) => {
           ))}
         </div>
       </div>
-
+      <Button
+        variant="primary"
+        size="small"
+        onClick={() => setIsInviteModalOpen(true)}
+      >
+        Пригласить
+      </Button>
       <div className={styles.actions}>
         <Button variant="secondary" onClick={() => alert('Функция "Выйти" пока не реализована')}>
           Выйти из организации

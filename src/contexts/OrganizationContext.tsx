@@ -52,6 +52,15 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
+  const createOrganizationInvite = async (organizationId: string) => {
+    try {
+      return await organizationService.createOrganizationInvite(organizationId);
+    } catch (error) {
+      setError((error as Error).message);
+      throw error;
+    }
+  };
+
   const refreshOrganizations = useCallback(() => loadOrganizations(), [loadOrganizations]);
 
   const refreshCurrentOrganization = useCallback(async () => {
@@ -148,6 +157,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     regenerateInviteCode,
     deactivateInviteCode,
     deleteOrganization,
+    createOrganizationInvite,
   };
 
   return (

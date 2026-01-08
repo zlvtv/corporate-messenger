@@ -1,10 +1,10 @@
 // src/pages/InvitePage.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { useOrganization } from '../contexts/OrganizationContext';
-import Button from '../components/ui/button/button';
-import styles from './InvitePage.module.css';
+import { supabase } from '../../lib/supabase';
+import { useOrganization } from '../../contexts/OrganizationContext';
+import Button from '../../components/ui/button/button';
+import styles from './Invite.module.css';
 
 const InvitePage = () => {
   const { token } = useParams();

@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:unit": "jest",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.84.0",
@@ -18,17 +21,22 @@
     "react-router-dom": "^7.9.6"
   },
   "devDependencies": {
+    "@cypress/react": "^9.0.1",
+    "@cypress/vite-dev-server": "^7.0.1",
     "@eslint/js": "^9.39.1",
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.22",
+    "cypress": "^15.8.2",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jest": "^30.2.0",
     "postcss": "^8.5.6",
     "postcss-nested": "^7.0.2",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vite-plugin-react": "^4.0.1"
   }
 }
