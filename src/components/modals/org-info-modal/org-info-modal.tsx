@@ -12,7 +12,7 @@ interface OrgInfoModalProps {
 
 const OrgInfoModal: React.FC<OrgInfoModalProps> = ({ anchorEl, onClose }) => {
   const modalRef = useRef<HTMLDivElement>(null);
-  const { currentOrganization, leaveOrganization, deleteOrganization, createOrganizationInvite } = useOrganization();
+  const { currentOrganization, leaveOrganization, deleteOrganization, createOrganizationInvite, refreshCurrentOrganization } = useOrganization();
   const { user } = useAuth();
 
   const [isLeaving, setIsLeaving] = useState(false);
@@ -23,6 +23,10 @@ const OrgInfoModal: React.FC<OrgInfoModalProps> = ({ anchorEl, onClose }) => {
   const [error, setError] = useState<string | null>(null);
 
   const isOwner = currentOrganization?.created_by === user?.id;
+
+  useEffect(() => {
+    refreshCurrentOrganization();
+  }, [refreshCurrentOrganization]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -79,26 +83,26 @@ const OrgInfoModal: React.FC<OrgInfoModalProps> = ({ anchorEl, onClose }) => {
   };
 
   const handleGenerateInvite = async () => {
-  if (!currentOrganization) return;
+    if (!currentOrganization) return;
 
-  setIsGenerating(true);
-  setError(null);
+    setIsGenerating(true);
+    setError(null);
 
-  try {
-    const data = await createOrganizationInvite(currentOrganization.id);
+    try {
+      const data = await createOrganizationInvite(currentOrganization.id);
 
-    if (data && data.invite_link) {
-      setInviteLink(data.invite_link);
-      setExpiresAt(data.expires_at);
-    } else {
-      setError('Не удалось получить ссылку');
+      if (data && data.invite_link) {
+        setInviteLink(data.invite_link);
+        setExpiresAt(data.expires_at);
+      } else {
+        setError('Не удалось получить ссылку');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Не удалось создать приглашение');
+    } finally {
+      setIsGenerating(false);
     }
-  } catch (err: any) {
-    setError(err.message || 'Не удалось создать приглашение');
-  } finally {
-    setIsGenerating(false);
-  }
-};
+  };
 
   const handleCopyLink = () => {
     if (inviteLink) {
@@ -169,12 +173,10 @@ const OrgInfoModal: React.FC<OrgInfoModalProps> = ({ anchorEl, onClose }) => {
                 Скопировать ссылку
               </Button>
               {inviteLink && expiresAt && (
-  <div className={styles.inviteInfo}>
-    <small>
-      Ссылка действительна 1 час.
-  </small>
-</div>
-)}
+                <div className={styles.inviteInfo}>
+                  <small>Ссылка действительна 1 час.</small>
+                </div>
+              )}
             </div>
           ) : (
             <Button

@@ -141,7 +141,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       await organizationService.deleteOrganization(organizationId);
       await refreshOrganizations();
       if (currentOrganization?.id === organizationId) {
-        setCurrentOrganization(organizations[0] || null);
+        setCurrentOrganization(null);
         localStorage.removeItem('currentOrgId');
       }
     } catch (err) {

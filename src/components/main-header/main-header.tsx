@@ -11,7 +11,15 @@ const MainHeader: React.FC = () => {
   const [infoBtnEl, setInfoBtnEl] = React.useState<HTMLButtonElement | null>(null);
 
   const handleInfoClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-    setInfoBtnEl(e.currentTarget);
+    const target = e.currentTarget;
+
+    if (isOrgInfoOpen) {
+      closeOrgInfo();
+      setInfoBtnEl(null);
+      return;
+    }
+
+    setInfoBtnEl(target);
     openOrgInfo();
   };
 
