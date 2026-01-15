@@ -1,16 +1,61 @@
-# React + Vite
+# TeamBridge
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Платформа для командной работы, объединяющая чат и управление задачами. Позволяет обсуждать идеи в реальном времени и мгновенно превращать сообщения в задачи с контролем исполнения.
 
-Currently, two official plugins are available:
+## Возможности
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Аутентификация и управление профилями
+- Организации и проекты с иерархией доступа
+- Чат с контекстным меню (в разработке)
+- Создание задач из сообщений (в разработке)
+- Доска задач с фильтрацией и календарным видом (в разработке)
+- Реальное время (Supabase Realtime)
+- Адаптивный интерфейс
 
-## React Compiler
+## Технологии
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React, TypeScript, Vite
+- **Состояние**: Context API
+- **Бэкенд**: Supabase (Auth, PostgreSQL, Realtime)
+- **Деплой**: Render
+- **Пакетный менеджер**: pnpm
 
-## Expanding the ESLint configuration
+## Архитектура
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Фронтенд построен на модульной системе с разделением по контекстам:  
+`AuthContext`, `OrganizationContext`, `ProjectContext` — обеспечивают прозрачный доступ к данным на всех уровнях приложения.
+
+Интеграция с Supabase включает:
+- Аутентификацию по email
+- RLS для защиты данных
+- Подписки на изменения в реальном времени
+
+## Запуск
+
+```bash
+git clone https://github.com/zlvtv/TeamBridge.git
+pnpm install
+cp .env.example .env
+```
+Заполните .env значениями из Supabase:
+```bash
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+Запуск в режиме разработки:
+```bash
+pnpm run dev
+```
+## Сборка
+```bash
+pnpm run build
+```
+## Безопасность
+- Пароли хранятся в хэшированном виде
+- Аутентификация через JWT
+- Ограничение попыток входа
+- XSS-фильтрация контента
+- RLS в PostgreSQL
+
+## Лицензия
+Исходный код доступен для использования в образовательных целях с указанием авторства.
