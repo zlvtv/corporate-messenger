@@ -17,16 +17,13 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Сброс при открытии и закрытии
   useEffect(() => {
     if (isOpen) {
-      // При открытии — сбрасываем всё
       setName('');
       setDescription('');
       setError(null);
-      setIsCreating(false); // ✅ Важно: сбрасываем состояние загрузки
+      setIsCreating(false); 
     } else {
-      // При закрытии — тоже можно сбросить (на случай, если было принудительное закрытие)
       setIsCreating(false);
       setError(null);
     }
@@ -48,11 +45,10 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
         description: description.trim(),
       });
 
-      // ✅ Успешно создана — закрываем
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось создать организацию');
-      setIsCreating(false); // ✅ Сбрасываем, если ошибка
+      setIsCreating(false); 
     }
   };
 
@@ -95,7 +91,6 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
           </Button>
         </div>
 
-        {/* Фидбэк во время создания */}
         {isCreating && (
           <div className={styles.creatingFeedback}>
             <small>Создаём организацию…</small>

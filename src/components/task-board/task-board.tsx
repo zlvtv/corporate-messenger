@@ -27,7 +27,6 @@ const TaskBoard: React.FC = () => {
     search: '',
   });
 
-  // Загрузка задач
   useEffect(() => {
     if (!currentProject) return;
 
@@ -70,7 +69,6 @@ const TaskBoard: React.FC = () => {
 
         const tasksData = data || [];
 
-        // Загрузим assignees для каждой задачи
         const assigneesMap: { [key: string]: any[] } = {};
         tasksData.forEach((task: any) => {
           assigneesMap[task.id] = task.task_assignees.map((ta: any) => ta.profiles);
@@ -80,7 +78,6 @@ const TaskBoard: React.FC = () => {
         setAssignees(assigneesMap);
       } catch (err: any) {
         setError('Ошибка загрузки задач');
-        console.error(err);
       } finally {
         setIsLoading(false);
       }
@@ -89,7 +86,6 @@ const TaskBoard: React.FC = () => {
     fetchTasks();
   }, [currentProject?.id]);
 
-  // Подписка на изменения
   useEffect(() => {
     if (!currentProject) return;
 
@@ -140,7 +136,6 @@ const TaskBoard: React.FC = () => {
     };
   }, [currentProject?.id]);
 
-  // Фильтрация задач
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const matchesSearch = task.title.toLowerCase().includes(filters.search.toLowerCase());

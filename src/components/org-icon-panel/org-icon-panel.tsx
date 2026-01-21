@@ -9,9 +9,7 @@ const OrgIconPanel: React.FC = () => {
     organizations,
     currentOrganization,
     setCurrentOrganization,
-    lastCreatedOrgName,
-    setLastCreatedOrgName,
-  } = useOrganization();
+  } = useOrganization(); 
 
   const [searchAnchor, setSearchAnchor] = useState<HTMLElement | null>(null);
   const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] = useState(false);
@@ -28,10 +26,8 @@ const OrgIconPanel: React.FC = () => {
       const bottomOffset = 20;
       const settingsHeight = 120;
       const gap = 16;
-
       const availableHeight = totalHeight - topOffset - settingsHeight - gap - bottomOffset;
       const clampedHeight = Math.max(120, availableHeight);
-
       setMaxHeight(clampedHeight);
     };
 
@@ -68,16 +64,6 @@ const OrgIconPanel: React.FC = () => {
   const handleMouseLeave = () => {
     orgsRef.current?.removeEventListener('wheel', handleWheel);
   };
-
-  useEffect(() => {
-    if (lastCreatedOrgName && organizations.length > 0) {
-      const newOrg = organizations.find((org) => org.name === lastCreatedOrgName);
-      if (newOrg && newOrg.id !== currentOrganization?.id) {
-        setCurrentOrganization(newOrg);
-        setLastCreatedOrgName(null);
-      }
-    }
-  }, [organizations, lastCreatedOrgName, currentOrganization, setCurrentOrganization, setLastCreatedOrgName]);
 
   return (
     <>
@@ -125,22 +111,22 @@ const OrgIconPanel: React.FC = () => {
           aria-label="Список организаций"
           style={{ flex: 1, overflowY: 'auto', maxHeight: '100%' }}
         >
-          {organizations.map((org) => {
-            const firstLetter = org.name?.charAt(0).toUpperCase() || 'O';
-            return (
-              <button
-                key={org.id}
-                className={`${styles['org-icon-panel__org-btn']} ${
-                  currentOrganization?.id === org.id ? styles['org-icon-panel__org-btn--active'] : ''
-                }`}
-                onClick={() => handleOrgClick(org)}
-                aria-label={org.name}
-                title={org.name}
-              >
-                {firstLetter}
-              </button>
-            );
-          })}
+          {organizations.map((org) => {  
+  const firstLetter = org.name?.charAt(0).toUpperCase() || 'O';
+  return (
+    <button
+      key={org.id}
+      className={`${styles['org-icon-panel__org-btn']} ${
+        currentOrganization?.id === org.id ? styles['org-icon-panel__org-btn--active'] : ''
+      }`}
+      onClick={() => handleOrgClick(org)}
+      aria-label={org.name}
+      title={org.name}
+    >
+      {firstLetter}
+    </button>
+  );
+})}
         </div>
       </div>
     </>

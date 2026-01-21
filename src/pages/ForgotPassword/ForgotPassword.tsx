@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 import styles from './ForgotPassword.module.css';
 
 const ForgotPassword: React.FC = () => {
@@ -9,37 +9,35 @@ const ForgotPassword: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-
-  const checkIfUserExists = async (email: string): Promise<boolean> => {
-    const { data } = await supabase.rpc('is_email_registered', { user_email: email });
-    return data ?? false;
-  };
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-    const emailTrimmed = email.trim();
+
+    if (!email.trim()) {
+      setError('Введите email');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Введите корректный email');
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const userExists = await checkIfUserExists(emailTrimmed);
-      if (!userExists) {
-        setError('Пользователь с таким email не найден');
-        return;
+      const result = await resetPassword(email.trim());
+
+      if (result.success) {
+        setSuccess(true);
+      } else {
+        setError(result.message);
       }
-
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(emailTrimmed, {
-        redirectTo: `${window.location.origin}/recovery/callback`,
-      });
-
-      if (resetError) {
-        setError('Не удалось отправить ссылку. Повторите попытку.');
-        return;
-      }
-
-      setSuccess(true);
-    } catch {
-      setError('Произошла ошибка сети');
+    } catch (err: any) {
+      setError('Не удалось отправить письмо. Попробуйте позже.');
     } finally {
       setIsLoading(false);
     }
@@ -51,16 +49,16 @@ const ForgotPassword: React.FC = () => {
         <h1 className={styles.title}>{success ? 'Проверьте почту' : 'Восстановление пароля'}</h1>
 
         {success ? (
-          <div className={styles.successContainer}>
-            <p className={styles.subtitle}>
-              На адрес <strong>{email}</strong> отправлено письмо с инструкциями.
-            </p>
-            <p className={styles.spamHint}>Проверьте папку «Спам», если письмо не пришло.</p>
-            <button className={styles.submit} onClick={() => navigate('/login')}>
-              Войти
-            </button>
-          </div>
-        ) : (
+  <div className={styles.successContainer}>
+    <p className={styles.subtitle}>
+      Если аккаунт с email <strong>{email}</strong> существует, вы получите письмо со ссылкой для восстановления.
+    </p>
+    <p className={styles.spamHint}>Проверьте папку «Спам», если письмо не пришло.</p>
+    <button className={styles.submit} onClick={() => navigate('/login')}>
+      Войти
+    </button>
+  </div>
+) : (
           <>
             <p className={styles.subtitle}>Введите email, чтобы получить ссылку для восстановления</p>
             {error && <div className={styles.error}>{error}</div>}

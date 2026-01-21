@@ -1,40 +1,28 @@
-.PHONY: dev build lint test test-unit test-unit-watch test-coverage e2e component open-cypress preview clean help
+.PHONY: dev build lint test-unit test-coverage preview clean help
 
 dev:
-	npm run dev
+	pnpm run dev
 
 build:
-	npm run build
+	pnpm run build
 
 lint:
-	npm run lint
+	pnpm run lint
 
 test-unit:
-	npm run test:unit
-
-test-unit-watch:
-	npm run test:unit -- --watch
+	pnpm run test:unit
 
 test-coverage:
-	npm run test:unit -- --coverage --watchAll=false
-
-e2e:
-	npm run dev & sleep 3; npm run cypress:open
-
-component:
-	npm run cypress:component
-
-open-cypress:
-	npm run cypress:open
+	pnpm run test:unit -- --coverage --watchAll=false
 
 preview:
-	npm run preview
+	pnpm run preview
 
 clean:
 	rm -rf node_modules/.vite
 	rm -rf coverage
 	rm -rf cypress/videos cypress/screenshots
-	npm cache clean --force
+	pnpm store prune
 
 help:
 	@echo ""
@@ -46,12 +34,9 @@ help:
 	@echo "  make lint              — Проверить код (ESLint)"
 	@echo ""
 	@echo "  make test-unit         — Запустить юнит-тесты (Jest)"
-	@echo "  make test-unit-watch   — Юнит-тесты в режиме watch"
 	@echo "  make test-coverage     — Покрытие кода (Jest)"
 	@echo ""
-	@echo "  make e2e               — Запустить E2E тесты (Cypress)"
-	@echo "  make component         — Запустить компонентные тесты (Cypress)"
-	@echo "  make open-cypress      — Открыть Cypress UI"
+	@echo "  make preview           — Предпросмотр сборки"
 	@echo ""
 	@echo "  make clean             — Очистить кэш и артефакты"
 	@echo "  make help              — Показать это сообщение"

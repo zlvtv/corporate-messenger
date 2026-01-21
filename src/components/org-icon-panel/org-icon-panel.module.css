@@ -56,8 +56,9 @@
   padding: 4px 0;
   margin-top: 4px;
   overflow-y: auto;
-  scrollbar-width: thin;
   scrollbar-color: var(--color-primary) var(--color-surface);
+  scrollbar-width: none; /* 🔥 Firefox: скрывает скроллбар */
+  -ms-overflow-style: none; /* 🔥 IE/Edge */
   flex-shrink: 0;
 }
 
@@ -103,4 +104,8 @@
 .org-icon-panel__org-btn--active {
   background: var(--color-primary);
   color: white;
+}
+
+.org-icon-panel__orgs::-webkit-scrollbar {
+  display: none;
 }

@@ -6,10 +6,9 @@ import React, {
   useCallback,
 } from 'react';
 import { useOrganization } from './OrganizationContext';
-import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { api } from '../lib/api';  
 
-// Типы
 interface ProjectMember {
   id: string;
   user_id: string;
@@ -69,6 +68,34 @@ interface ProjectContextType {
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
+const generateId = () => Date.now().toString();
+
+let MOCK_PROJECTS: Project[] = [
+  {
+    id: 'proj-1',
+    organization_id: 'org-1',
+    name: 'Веб-платформа',
+    description: 'Разработка дашборда',
+    created_at: '2025-01-21T09:00:00Z',
+    created_by: 'user-1',
+    members: [
+      {
+        id: 'member-1',
+        user_id: 'user-1',
+        role: 'owner',
+        joined_at: '2025-01-21T09:00:00Z',
+        profile: {
+          id: 'user-1',
+          username: 'demo_user',
+          full_name: 'Demo User',
+          avatar_url: null,
+        },
+      },
+    ],
+    tasks: [],
+  },
+];
+
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
@@ -79,89 +106,66 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { user } = useAuth();
 
   const fetchProjects = useCallback(async (): Promise<Project[]> => {
-    if (!currentOrganization) return [];
+    if (!currentOrganization || !user) return [];
 
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          id,
-          organization_id,
-          name,
-          description,
-          created_at,
-          created_by,
-          project_members (
-            user_id,
-            role,
-            joined_at,
-            profiles (
-              id,
-              username,
-              full_name,
-              avatar_url
-            )
-          )
-        `)
-        .eq('organization_id', currentOrganization.id)
-        .order('created_at', { ascending: false });
+      setIsLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 500)); 
 
-      if (error) throw error;
+      const orgProjects = MOCK_PROJECTS.filter(p => p.organization_id === currentOrganization.id);
 
-      const formatted = (data || []).map((p: any) => ({
-        ...p,
-        members: p.project_members.map((m: any) => ({
-          ...m,
-          profile: m.profiles,
-        })),
-        tasks: [],
-      }));
+      setProjects(orgProjects);
 
-      setProjects(formatted);
-
-      // Восстановить текущий проект
       const savedId = localStorage.getItem('currentProjectId');
-      const savedProject = formatted.find(p => p.id === savedId) || formatted[0] || null;
+      const savedProject = orgProjects.find(p => p.id === savedId) || orgProjects[0] || null;
       setCurrentProject(savedProject);
 
-      return formatted;
+      return orgProjects;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки проектов');
       return [];
     }
-  }, [currentOrganization?.id]);
+  }, [currentOrganization?.id, user?.id]);
 
   const refreshProjects = useCallback(async () => {
-    const projects = await fetchProjects();
-    return projects;
+    return await fetchProjects();
   }, [fetchProjects]);
 
   const createProject = async (name: string, description?: string): Promise<Project> => {
     if (!currentOrganization || !user) throw new Error('Нет доступа');
 
-    const { data, error } = await supabase
-      .from('projects')
-      .insert({
-        name,
-        description: description || null,
-        organization_id: currentOrganization.id,
-        created_by: user.id,
-      })
-      .select()
-      .single();
+    await new Promise(resolve => setTimeout(resolve, 600));
 
-    if (error) throw error;
+    const newProject: Project = {
+      id: 'proj-' + generateId(),
+      organization_id: currentOrganization.id,
+      name,
+      description: description || null,
+      created_at: new Date().toISOString(),
+      created_by: user.id,
+      members: [
+        {
+          id: 'member-' + generateId(),
+          user_id: user.id,
+          role: 'owner',
+          joined_at: new Date().toISOString(),
+          profile: {
+            id: user.id,
+            username: user.username,
+            full_name: user.full_name,
+            avatar_url: user.avatar_url,
+          },
+        },
+      ],
+      tasks: [],
+    };
 
-    await supabase
-      .from('project_members')
-      .insert({
-        project_id: data.id,
-        user_id: user.id,
-        role: 'owner',
-      });
+    MOCK_PROJECTS.push(newProject);
+    setProjects(prev => [newProject, ...prev]);
+    setCurrentProject(newProject);
+    localStorage.setItem('currentProjectId', newProject.id);
 
-    await refreshProjects();
-    return data;
+    return newProject;
   };
 
   const isMember = (projectId: string) => {
@@ -176,7 +180,6 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     if (currentOrganization) {
-      setIsLoading(true);
       fetchProjects().finally(() => setIsLoading(false));
     } else {
       setProjects([]);
@@ -191,7 +194,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [currentProject]);
 
-  const value = {
+  const value: ProjectContextType = {
     projects,
     currentProject,
     isLoading,

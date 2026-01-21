@@ -1,45 +1,29 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  updateProfile,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { setDoc, doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { UserProfile, AuthContextType } from '../types/auth.types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function getUserProfile(userId: string): Promise<UserProfile | null> {
-  const cacheKey = `profile_${userId}`;
-  const cached = localStorage.getItem(cacheKey);
-
-  if (cached) {
-    try {
-      const { data, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < 5 * 60 * 1000) {
-        return data;
-      }
-    } catch {}
-  }
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-
-  if (error) return null;
-
-  localStorage.setItem(cacheKey, JSON.stringify({ data, timestamp: Date.now() }));
-  return data as UserProfile;
-}
-
 const translateAuthError = (message: string): string => {
   const map: Record<string, string> = {
-    'Invalid login credentials': 'Неверный email или пароль',
-    'Email not confirmed': 'Email не подтверждён. Проверьте почту',
-    'Email rate limit exceeded': 'Слишком много попыток. Попробуйте позже',
-    'User already registered': 'Пользователь с таким email уже существует',
-    'Password should be at least 6 characters': 'Пароль должен быть не менее 6 символов',
-    'The email address is invalid': 'Неверный формат email',
-    'User not found': 'Пользователь с таким email не найден',
-    'Invalid confirmation token': 'Неверная или устаревшая ссылка',
-    'Token has expired': 'Ссылка устарела',
+    'auth/user-not-found': 'Пользователь с таким email не найден',
+    'auth/wrong-password': 'Неверный email или пароль',
+    'auth/invalid-email': 'Неверный формат email',
+    'auth/email-already-in-use': 'Пользователь с таким email уже существует',
+    'auth/weak-password': 'Пароль должен быть не менее 6 символов',
+    'auth/too-many-requests': 'Слишком много попыток. Попробуйте позже',
   };
 
   for (const [key, value] of Object.entries(map)) {
@@ -54,132 +38,123 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user: UserProfile | null;
     isLoading: boolean;
     isInitialized: boolean;
+    isEmailVerified: boolean;
   }>({
     user: null,
     isLoading: true,
     isInitialized: false,
+    isEmailVerified: false,
   });
 
-  const initializedRef = useRef(false);
-  const isSettingStateRef = useRef(false);
-
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
+  const unsubscribe = onAuthStateChanged(auth, async (user: FirebaseUser | null) => {
 
-    let isMounted = true;
+    if (user) {
+      const isVerified = user.emailVerified;
 
-    const updateAuthState = (user: UserProfile | null) => {
-      if (!isMounted || isSettingStateRef.current) return;
-      isSettingStateRef.current = true;
-      setState({ user, isLoading: false, isInitialized: true });
-      isSettingStateRef.current = false;
-    };
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const userData = userDoc.data();
 
-    const processSession = async (session: any, source: string) => {
-      if (!isMounted) return;
+      const profile: UserProfile = {
+        id: user.uid,
+        email: user.email || '',
+        username: userData?.username || user.email?.split('@')[0] || 'user',
+        full_name: userData?.full_name || user.displayName || userData?.username || 'User',
+        avatar_url: user.photoURL || userData?.avatar_url || null,
+      };
 
-      if (session?.user) {
-        let profile = null;
-        try {
-          const profilePromise = getUserProfile(session.user.id);
-          const timeout = new Promise<null>((resolve) => setTimeout(resolve, 1000));
-          profile = await Promise.race([profilePromise, timeout]);
-        } catch {}
-
-        const { user: sessionUser } = session;
-        const userProfile: UserProfile = {
-          id: sessionUser.id,
-          email: sessionUser.email || '',
-          username: profile?.username || sessionUser.user_metadata?.username || sessionUser.email?.split('@')[0] || 'user',
-          full_name: profile?.full_name || sessionUser.user_metadata?.full_name || sessionUser.user_metadata?.username || sessionUser.email?.split('@')[0] || 'User',
-          avatar_url: profile?.avatar_url || sessionUser.user_metadata?.avatar_url || null,
-        };
-
-        updateAuthState(userProfile);
-      } else {
-        updateAuthState(null);
-      }
-    };
-
-    const initialize = async () => {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') {
-          processSession(session, `event-${event}`);
-        } else if (event === 'TOKEN_REFRESHED') {
-          setState((prev) => ({ ...prev, isLoading: false, isInitialized: true }));
-        }
+      setState({
+        user: profile,
+        isLoading: false,
+        isInitialized: true,
+        isEmailVerified: isVerified,
       });
+    } else {
+      setState({
+        user: null,
+        isLoading: false,
+        isInitialized: true,
+        isEmailVerified: false,
+      });
+    }
+  });
 
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        updateAuthState(null);
-        return subscription;
-      }
-
-      if (session) {
-        try {
-          const { error: userError } = await supabase.auth.getUser();
-          if (userError) {
-            await supabase.auth.signOut();
-            updateAuthState(null);
-            window.location.href = '/login';
-            return subscription;
-          }
-          await processSession(session, 'initial');
-        } catch (err: any) {
-          if (err.message.includes('User from sub claim') || err.status === 403) {
-            await supabase.auth.signOut();
-            updateAuthState(null);
-            window.location.href = '/login';
-            return subscription;
-          }
-          updateAuthState(null);
-        }
-      } else {
-        updateAuthState(null);
-      }
-
-      return subscription;
-    };
-
-    const subscriptionPromise = initialize();
-
-    return () => {
-      isMounted = false;
-      subscriptionPromise.then((sub) => sub?.unsubscribe());
-    };
-  }, []);
-
-  const signUp = async (email: string, password: string, username: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username, full_name: username },
-      },
-    });
-
-    return { data, error };
-  };
+  return () => unsubscribe();
+}, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+
+      if (!user.emailVerified) {
+        throw new Error('email not confirmed');
+      }
+    } catch (error: any) {
+      throw new Error(translateAuthError(error.message));
+    }
+  };
+
+  const signUp = async (email: string, password: string, username: string) => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      const user = result.user;
+
+      await updateProfile(user, { displayName: username });
+
+      await setDoc(doc(db, 'users', user.uid), {
+        uid: user.uid,
+        email: user.email,
+        username,
+        full_name: username,
+        avatar_url: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await sendEmailVerification(user);
+
+      return { data: { user: profileFromUser(user, username) }, error: null };
+    } catch (error: any) {
+      return {
+        data: null,
+        error: { message: translateAuthError(error.message) },
+      };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    await firebaseSignOut(auth);
+    localStorage.removeItem('currentProjectId');
+    window.location.href = '/login';
   };
+
+  const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { success: true, message: 'Письмо для восстановления отправлено' };
+    } catch (error: any) {
+      return { success: false, message: translateAuthError(error.message) };
+    }
+  };
+
+  const profileFromUser = (user: FirebaseUser, username: string): UserProfile => ({
+    id: user.uid,
+    email: user.email || '',
+    username,
+    full_name: username,
+    avatar_url: null,
+  });
 
   const value: AuthContextType = {
     user: state.user,
     isLoading: state.isLoading,
     isInitialized: state.isInitialized,
-    signUp,
+    isEmailVerified: state.isEmailVerified,
     signIn,
     signOut,
+    signUp,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

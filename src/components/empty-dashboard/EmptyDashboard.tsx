@@ -2,24 +2,23 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../../contexts/UIContext';
-import { supabase } from '../../lib/supabase';
 import styles from './EmptyDashboard.module.css';
 
 const EmptyDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { openCreateOrgModal } = useUI();
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      await signOut(); 
     } finally {
       navigate('/login', { replace: true });
     }
   };
 
   const handleCreateOrgClick = () => {
-    openCreateOrgModal(); 
+    openCreateOrgModal();
   };
 
   return (

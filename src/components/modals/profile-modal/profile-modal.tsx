@@ -51,8 +51,13 @@ const ProfileModal: React.FC = () => {
   }, [closeProfile]);
 
   const handleSignOut = async () => {
-    await signOut();
-    closeProfile();
+    try {
+      await signOut();
+    } catch (err) {
+      window.location.href = '/login';
+    } finally {
+      closeProfile();
+    }
   };
 
   if (!position) return null;

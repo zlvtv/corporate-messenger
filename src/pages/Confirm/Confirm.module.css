@@ -63,3 +63,46 @@
   transition: background 0.2s;
   margin-top: 8px;
 }
+
+.loading, .success, .errorBox {
+  text-align: center;
+  padding: 20px;
+  margin: 10px 0;
+}
+
+.loading .spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.success h2 {
+  color: #065f46;
+  margin: 0 0 8px 0;
+}
+
+.success p {
+  color: #065f46;
+  font-size: 14px;
+}
+
+.errorBox {
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
+}
+
+.errorBox p {
+  margin: 0 0 10px 0;
+}

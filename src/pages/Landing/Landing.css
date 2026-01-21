@@ -1,0 +1,159 @@
+.landing {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f9f9fb;
+}
+
+.landing__hero {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  text-align: center;
+  padding: 100px 20px 60px;
+}
+
+.landing__hero h1 {
+  font-size: 3.5rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.landing__hero p {
+  font-size: 1.25rem;
+  max-width: 600px;
+  margin: 20px auto;
+  opacity: 0.9;
+}
+
+.landing__hero-buttons {
+  margin-top: 30px;
+}
+
+/* Кнопки */
+.btn {
+  display: inline-block;
+  padding: 12px 28px;
+  margin: 0 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #fff;
+  color: #2575fc;
+}
+
+.btn-primary:hover {
+  background-color: #f0f0f0;
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: #fff;
+  border: 2px solid white;
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.btn-large {
+  padding: 16px 36px;
+  font-size: 1.1rem;
+}
+
+/* Demo */
+.landing__demo {
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.landing__demo h2 {
+  font-size: 2rem;
+  margin-bottom: 40px;
+  color: #2c3e50;
+}
+
+.demo-placeholder {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 20px;
+  background-color: #f0f2f5;
+  border-radius: 10px;
+  border: 2px dashed #ccc;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.landing__features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 40px;
+  padding: 60px 20px;
+  background-color: #fff;
+}
+
+.feature {
+  flex: 1 1 300px;
+  max-width: 350px;
+  text-align: center;
+}
+
+.feature h3 {
+  font-size: 1.4rem;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.feature p {
+  color: #666;
+  font-size: 1rem;
+}
+
+.landing__cta {
+  text-align: center;
+  padding: 80px 20px;
+  background-color: #2575fc;
+  color: white;
+}
+
+.landing__cta h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+/* Footer */
+.landing__footer {
+  text-align: center;
+  padding: 30px;
+  background-color: #f0f2f5;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .landing__hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .landing__hero p {
+    font-size: 1.1rem;
+  }
+
+  .btn {
+    display: block;
+    width: 80%;
+    margin: 10px auto;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    margin: 0;
+  }
+}

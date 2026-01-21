@@ -2,15 +2,27 @@ export interface UserProfile {
   id: string;
   email: string;
   username: string;
-  full_name: string;
-  avatar_url?: string;
+  full_name: string | null;
+  avatar_url: string | null;
 }
 
 export interface AuthContextType {
   user: UserProfile | null;
   isLoading: boolean;
   isInitialized: boolean;
-  signUp: (email: string, password: string, username: string) => Promise<{ data: any; error: any }>;
+  isEmailVerified: boolean; 
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  signUp: (
+    email: string,
+    password: string,
+    username: string
+  ) => Promise<{
+    data: { user: UserProfile } | null;
+    error: { message: string } | null;
+  }>;
+  resetPassword: (email: string) => Promise<{
+    success: boolean;
+    message: string;
+  }>;
 }

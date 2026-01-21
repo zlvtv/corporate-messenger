@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useProject } from '../../../contexts/ProjectContext';
 import { useAuth } from '../../../contexts/AuthContext';
-import { supabase } from '../../../lib/supabase';
+import { createTask } from '../../../lib/firestore'; 
 import styles from './create-task-modal.module.css';
 import Button from '../../ui/button/button';
 import Input from '../../ui/input/input';
@@ -27,7 +27,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   sourceMessageId,
   initialContent,
 }) => {
-  const { currentProject, canManageTasks } = useProject();
+  const { currentProject, refreshProjects } = useProject();
   const { user } = useAuth();
 
   const [title, setTitle] = useState('');
@@ -47,40 +47,18 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   }, [initialContent]);
 
   useEffect(() => {
-    const loadUsers = async () => {
-      if (!currentProject) return;
+    if (!currentProject || !currentProject.members) return;
 
-      const { data, error } = await supabase
-        .from('project_members')
-        .select(`
-          user_id,
-          profiles (
-            id,
-            full_name,
-            username,
-            avatar_url
-          )
-        `)
-        .eq('project_id', currentProject.id);
+    const users = currentProject.members.map((m) => ({
+      id: m.user_id,
+      full_name: m.profile.full_name,
+      username: m.profile.username,
+      avatar_url: m.profile.avatar_url,
+    }));
 
-      if (error) {
-        console.error('Failed to load users:', error);
-        return;
-      }
-
-      const users = (data || []).map((m: any) => ({
-        id: m.user_id,
-        full_name: m.profiles.full_name,
-        username: m.profiles.username,
-        avatar_url: m.profiles.avatar_url,
-      }));
-
-      setAvailableUsers(users);
-      setAssignees([user?.id]); // По умолчанию — создатель
-    };
-
-    loadUsers();
-  }, [currentProject?.id, user?.id]);
+    setAvailableUsers(users);
+    if (user) setAssignees([user.id]); 
+  }, [currentProject, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,44 +70,26 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
     setError(null);
 
     try {
-      // Определяем, кто ответственный
       const assigneeList = isAssignAll
-        ? availableUsers.map(u => u.id)
+        ? availableUsers.map((u) => u.id)
         : assignees.length > 0
         ? assignees
         : [user.id];
 
-      const { data: task, error: taskError } = await supabase
-        .from('tasks')
-        .insert({
-          project_id: currentProject.id,
-          title: title.trim(),
-          description: description.trim() || null,
-          created_by: user.id,
-          due_date: dueDate || null,
-          source_message_id: sourceMessageId || null,
-        })
-        .select()
-        .single();
+      await createTask({
+        project_id: currentProject.id,
+        title: title.trim(),
+        description: description.trim(),
+        due_date: dueDate || undefined,
+        source_message_id: sourceMessageId,
+        assignee_ids: assigneeList,
+      });
 
-      if (taskError) throw taskError;
-
-      // Добавляем ответственных
-      const assigneesData = assigneeList.map(user_id => ({
-        task_id: task.id,
-        user_id,
-        assigned_by: user.id,
-      }));
-
-      const { error: assignError } = await supabase
-        .from('task_assignees')
-        .insert(assigneesData);
-
-      if (assignError) throw assignError;
+      await refreshProjects?.();
 
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Ошибка создания задачи');
+      setError('Не удалось создать задачу. Попробуйте позже.');
     } finally {
       setIsLoading(false);
     }
@@ -137,9 +97,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 
   const toggleAssignee = (userId: string) => {
     setAssignees((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
   };
 

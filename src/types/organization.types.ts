@@ -1,10 +1,4 @@
-export interface UserProfile {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  username: string | null;
-  avatar_url: string | null;
-}
+import { UserProfile } from './auth.types';
 
 export interface OrganizationMember {
   id: string;
@@ -18,7 +12,7 @@ export interface OrganizationMember {
 export interface Organization {
   id: string;
   name: string;
-  description?: string;
+  description: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -32,4 +26,9 @@ export interface OrganizationInvite {
   token: string;
   expires_at: string;
   invite_link: string;
+}
+
+export interface CreateOrganizationData {
+  name: string;
+  description?: string;
 }

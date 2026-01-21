@@ -1,21 +1,21 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import styles from './RecoveryCallback.module.css';
 
 const RecoveryCallback: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleRecovery = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error || !data.session) {
-        navigate('/password-recovery', { replace: true });
-        return;
-      }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const oobCode = urlParams.get('oobCode');
+
+    if (oobCode) {
+      localStorage.setItem('reset_password_oobCode', oobCode);
       navigate('/reset-password', { replace: true });
-    };
-    handleRecovery();
+    } else {
+      navigate('/password-recovery', { replace: true });
+    }
   }, [navigate]);
 
   return (

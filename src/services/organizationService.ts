@@ -1,168 +1,199 @@
-import { supabase } from '../lib/supabase';
+import { Organization, OrganizationWithMembers, CreateOrganizationData, OrganizationInvite } from '../types/organization.types';
+import { auth, db } from '../lib/firebase';
 import {
-  Organization,
-  OrganizationWithMembers,
-  CreateOrganizationData,
-  OrganizationInvite,
-} from '../types/organization.types';
+  getCollection,
+  getDocsByQuery,
+  createDoc,
+  deleteDocById,
+  getDocById,
+} from '../lib/firestore';
+import {
+  collection,
+  doc,
+  query,
+  where, 
+  getDocs,
+  deleteDoc,
+  writeBatch,
+  serverTimestamp
+} from 'firebase/firestore';
+
+const getCurrentUserId = () => {
+  return auth.currentUser?.uid;
+};
+
+const getCurrentUser = () => {
+  const user = auth.currentUser;
+  if (!user) return null;
+  return {
+    id: user.uid,
+    email: user.email || '',
+    full_name: user.displayName || user.email?.split('@')[0] || 'User',
+    username: user.email?.split('@')[0] || 'user',
+    avatar_url: user.photoURL || null,
+  };
+};
 
 export const organizationService = {
   async getOrganizationsLite(): Promise<Organization[]> {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) throw new Error('Не авторизован');
+    const userId = getCurrentUserId();
+    if (!userId) return [];
 
-    const { data, error } = await supabase
-      .from('organization_members')
-      .select(`
-        organization:organizations!inner(
-          id, 
-          name, 
-          description, 
-          created_by, 
-          created_at, 
-          updated_at
-        )
-      `)
-      .eq('user_id', user.id);
-
-    if (error) throw error;
-
-    return data.map((dm) => dm.organization);
+    const orgs = await getCollection('organizations');
+    return orgs
+      .filter((org: any) => org.members?.includes(userId))
+      .map(({ id, name, description, created_by, createdAt, updatedAt }: any) => ({
+        id,
+        name,
+        description,
+        created_by,
+        created_at: createdAt?.toDate ? createdAt.toDate().toISOString() : createdAt,
+        updated_at: updatedAt?.toDate ? updatedAt.toDate().toISOString() : updatedAt,
+      }));
   },
+
   async getUserOrganizations(): Promise<OrganizationWithMembers[]> {
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      throw new Error('Не удалось получить данные пользователя');
-    }
+  const userId = getCurrentUserId();
+  if (!userId) return [];
 
-    const { data, error } = await supabase.rpc('get_user_organizations_with_members');
-    if (error) throw new Error(`Ошибка загрузки организаций: ${error.message}`);
+  const orgs = await getDocsByQuery('organizations', where('members', 'array-contains', userId));
+  const result: OrganizationWithMembers[] = [];
 
-    const orgMap = new Map<string, OrganizationWithMembers>();
+  for (const org of orgs) {
+    const membersSnap = await getDocsByQuery('organization_members', where('organization_id', '==', org.id));
+    const membersWithUsers = await Promise.all(
+      membersSnap.map(async (member: any) => {
+        const userSnap = await getDocById('users', member.user_id);
+        return {
+          ...member,
+          joined_at: member.joined_at?.toDate ? member.joined_at.toDate().toISOString() : member.joined_at,
+          user: userSnap,
+        };
+      })
+    );
 
-    (data as any[]).forEach((row) => {
-      const memberData = row.member_data;
-
-      if (!orgMap.has(row.id)) {
-        orgMap.set(row.id, {
-          id: row.id,
-          name: row.name,
-          description: row.description,
-          created_by: row.created_by,
-          created_at: row.created_at,
-          updated_at: row.updated_at,
-          organization_members: [],
-        });
-      }
-
-      const org = orgMap.get(row.id)!;
-      org.organization_members.push({
-        id: memberData.id,
-        organization_id: row.id,
-        user_id: memberData.user_id,
-        role: memberData.role,
-        joined_at: row.created_at, 
-        user: {
-          id: memberData.user_id,
-          full_name: memberData.full_name,
-          email: null, 
-          username: memberData.username,
-          avatar_url: memberData.avatar_url,
-        },
-      });
+    result.push({
+      ...org,
+      created_at: org.createdAt?.toDate ? org.createdAt.toDate().toISOString() : org.createdAt,
+      updated_at: org.updatedAt?.toDate ? org.updatedAt.toDate().toISOString() : org.updatedAt,
+      organization_members: membersWithUsers,
     });
+  }
 
-    return Array.from(orgMap.values());
-  },
-
-  async joinOrganization(inviteToken: string): Promise<string> {
-  const { data, error } = await supabase.rpc('join_organization_by_invite', {
-    invite_token: inviteToken,
+  return result.sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime();
+    const dateB = new Date(b.created_at).getTime();
+    return dateB - dateA; 
   });
-
-  if (error) throw error;
-  return data;
 },
 
   async createOrganization(data: CreateOrganizationData): Promise<OrganizationWithMembers> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Пользователь не аутентифицирован');
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Пользователь не авторизован');
 
-    const { data: orgId, error: rpcError } = await supabase.rpc('create_organization_with_owner', {
-      org_name: data.name,
-      org_description: data.description || null,
+    const orgData = {
+      name: data.name,
+      description: data.description || null,
+      created_by: userId,
+      members: [userId],
+    };
+
+    const newOrg = await createDoc('organizations', orgData);
+
+    await createDoc('organization_members', {
+      organization_id: newOrg.id,
+      user_id: userId,
+      role: 'owner',
+      joined_at: serverTimestamp(),
     });
 
-    if (rpcError || !orgId) throw new Error(rpcError?.message || 'Ошибка создания');
-
-    const { data: org, error: fetchError } = await supabase
-      .from('organizations')
-      .select(`
-        *,
-        organization_members (
-          id,
-          role,
-          user_id,
-          users (
-            id,
-            full_name,
-            email
-          )
-        )
-      `)
-      .eq('id', orgId)
-      .single();
-
-    if (fetchError) {
-      return {
-        id: orgId,
-        name: data.name,
-        description: data.description,
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        organization_members: [],
-      };
-    }
-
     return {
-      ...org,
-      organization_members: (org.organization_members || []).map((m: any) => ({
-        ...m,
-        user: m.users,
-      })),
-    } as OrganizationWithMembers;
+      ...newOrg,
+      organization_members: [
+        {
+          id: 'temp',
+          organization_id: newOrg.id,
+          user_id: userId,
+          role: 'owner',
+          joined_at: new Date().toISOString(),
+          user: getCurrentUser()!,
+        },
+      ],
+    };
+  },
+
+  async joinOrganization(inviteToken: string): Promise<string> {
+    throw new Error('Функция приглашения временно недоступна');
   },
 
   async createOrganizationInvite(organizationId: string): Promise<OrganizationInvite> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Не аутентифицирован');
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Не авторизован');
 
-    const { data, error } = await supabase.rpc('create_organization_invite', {
-      org_id: organizationId,
-    });
+    const inviteData = {
+      organization_id: organizationId,
+      created_by: userId,
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      active: true,
+    };
 
-    if (error) throw new Error(`Ошибка создания приглашения: ${error.message}`);
-    return data;
+    const invite = await createDoc('organization_invites', inviteData);
+
+    return {
+      token: invite.id,
+      expires_at: invite.expires_at.toISOString(),
+      invite_link: `${window.location.origin}/invite/${invite.id}`,
+    };
   },
 
   async deleteOrganization(organizationId: string): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Не аутентифицирован');
+    const batch = writeBatch(db);
 
-    const { error } = await supabase.rpc('delete_organization', {
-      org_id: organizationId,
+    batch.delete(doc(db, 'organizations', organizationId));
+
+    const membersSnap = await getDocs(
+      query(collection(db, 'organization_members'), where('organization_id', '==', organizationId))
+    );
+    membersSnap.docs.forEach(memberDoc => {
+      batch.delete(memberDoc.ref);
     });
 
-    if (error) throw new Error(`Ошибка удаления: ${error.message}`);
+    const invitesSnap = await getDocs(
+      query(collection(db, 'organization_invites'), where('organization_id', '==', organizationId))
+    );
+    invitesSnap.docs.forEach(inviteDoc => {
+      batch.delete(inviteDoc.ref);
+    });
+
+    const projectsSnap = await getDocs(
+      query(collection(db, 'projects'), where('orgId', '==', organizationId))
+    );
+    for (const projectDoc of projectsSnap.docs) {
+      const messagesSnap = await getDocs(collection(db, `projects/${projectDoc.id}/messages`));
+      messagesSnap.docs.forEach(msgDoc => {
+        batch.delete(msgDoc.ref);
+      });
+      batch.delete(projectDoc.ref);
+    }
+
+    const tasksSnap = await getDocs(
+      query(collection(db, 'tasks'), where('organization_id', '==', organizationId))
+    );
+    tasksSnap.docs.forEach(taskDoc => {
+      batch.delete(taskDoc.ref);
+    });
+
+    await batch.commit();
   },
-
   async leaveOrganization(organizationId: string): Promise<void> {
-  const { error } = await supabase
-    .from('organization_members')
-    .delete()
-    .match({ user_id: (await supabase.auth.getUser()).data.user?.id, organization_id: organizationId });
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Не авторизован');
 
-  if (error) throw error;
-},
+    const members = await getDocsByQuery('organization_members', where('organization_id', '==', organizationId));
+    const member = members.find(m => m.user_id === userId);
+
+    if (member) {
+      await deleteDocById('organization_members', member.id);
+    }
+  },
 };

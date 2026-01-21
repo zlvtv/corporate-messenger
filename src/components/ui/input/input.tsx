@@ -9,7 +9,7 @@ interface InputProps {
   placeholder?: string;
   fullWidth?: boolean;
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   required?: boolean;
   disabled?: boolean;
   className?: string;
@@ -20,6 +20,9 @@ interface InputProps {
   size?: InputSize;
   'aria-label'?: string;
   'aria-describedby'?: string;
+
+  textarea?: boolean;
+  rows?: number; 
 }
 
 const Input: React.FC<InputProps> = ({
@@ -36,27 +39,43 @@ const Input: React.FC<InputProps> = ({
   autoFocus = false,
   error,
   size = 'medium',
+  textarea = false,
+  rows,
   ...props
 }) => {
+  const commonProps = {
+    placeholder,
+    value,
+    onChange,
+    required,
+    disabled,
+    className: `${styles.input} 
+      ${size === 'small' ? styles['input--small'] : ''} 
+      ${error ? styles['input--error'] : ''}
+      ${fullWidth ? styles['input--full-width'] : ''}
+      ${className}`.trim(),
+    name,
+    autoComplete,
+    autoFocus,
+    'aria-invalid': !!error,
+    'aria-describedby': error ? `${name}-error` : undefined,
+    ...props,
+  };
+
   return (
     <>
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        required={required}
-        disabled={disabled}
-        className={`${styles.input} ${size === 'small' ? styles['input--small'] : ''} ${
-          error ? styles['input--error'] : ''
-        } ${className}`.trim()}
-        name={name}
-        autoComplete={autoComplete}
-        autoFocus={autoFocus}
-        aria-invalid={!!error}
-        aria-describedby={error ? `${name}-error` : undefined}
-        {...props}
-      />
+      {textarea ? (
+        <textarea
+          {...commonProps}
+          rows={rows}
+          {...('type' in commonProps ? { type: undefined } : {})}
+        />
+      ) : (
+        <input
+          type={type}
+          {...commonProps}
+        />
+      )}
       {error && (
         <div id={`${name}-error`} className={styles['error-message']} role="alert">
           {error}

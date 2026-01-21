@@ -1,10 +1,12 @@
 import React, { useRef } from 'react';
 import { useUI } from '../../contexts/UIContext';
+import { useAuth } from '../../contexts/AuthContext';
 import ProfileModal from '../../components/modals/profile-modal/profile-modal';
 import styles from './settings-panel.module.css';
 
 const SettingsPanel: React.FC = () => {
   const { theme, toggleTheme, isProfileOpen, openProfile, closeProfile } = useUI();
+  const { signOut } = useAuth();
 
   const handleThemeClick = () => {
     toggleTheme();
@@ -16,6 +18,10 @@ const SettingsPanel: React.FC = () => {
     } else {
       openProfile();
     }
+  };
+
+  const handleSignOut = () => {
+    signOut();
   };
 
   return (

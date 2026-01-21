@@ -1,97 +1,90 @@
+
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UIProvider } from './contexts/UIContext';
 import { OrganizationProvider } from './contexts/OrganizationContext';
 import { ProjectProvider } from './contexts/ProjectContext';
 import Login from './pages/Login/Login';
+import SignUp from './pages/SignUp/SignUp';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Confirm from './pages/Confirm/Confirm';
+import Landing from './pages/Landing/Landing';
 import InvitePage from './pages/InvitePage/InvitePage';
 import LoadingState from './components/ui/loading/LoadingState';
-import SignUp from './pages/SignUp/SignUp';
 import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
+import AuthCallback from './pages/AuthCallback/AuthCallback';
 import RecoveryCallback from './pages/RecoveryCallback/RecoveryCallback';
 
-const EventListener = () => {
-  const navigate = useNavigate();
+const handleAuthRedirects = () => {
+  if (window.location.pathname === '/' && window.location.hash) {
+    const hash = window.location.hash;
 
-  useEffect(() => {
-    const handleInvite = (e: CustomEvent) => {
-      navigate(`/invite/${e.detail}`, { replace: true });
-    };
-
-    window.addEventListener('invite_after_login', handleInvite as any);
-    return () => window.removeEventListener('invite_after_login', handleInvite as any);
-  }, [navigate]);
-
-  return null;
+    if (hash.includes('access_token')) {
+      if (hash.includes('type=recovery')) {
+        window.location.replace(`/recovery/callback${hash}`);
+        return true;
+      }
+      if (hash.includes('type=signup')) {
+        window.location.replace(`/confirm${hash}`);
+        return true;
+      }
+    }
+  }
+  return false;
 };
 
+const redirected = handleAuthRedirects();
+
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isInitialized, isLoading } = useAuth();
-  if (!isInitialized || isLoading) return <LoadingState />;
+  const { user, isEmailVerified, isInitialized } = useAuth();
+
+  if (!isInitialized) return <LoadingState />;
   if (!user) return <Navigate to="/login" replace />;
+  if (!isEmailVerified) return <Navigate to="/confirm" replace />;
+
   return <>{children}</>;
 };
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isInitialized, isLoading } = useAuth();
+  const { user, isEmailVerified, isInitialized, isLoading } = useAuth();
+
   if (!isInitialized || isLoading) return <LoadingState />;
-  if (user) return <Navigate to="/" replace />;
+  if (user && isEmailVerified) return <Navigate to="/dashboard" replace />;
+
   return <>{children}</>;
 };
 
 const AuthCallbackRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isInitialized, isLoading } = useAuth();
-  if (!isInitialized || isLoading) return <LoadingState />;
-  if (user) return <Navigate to="/" replace />;
-  return <>{children}</>;
-};
-
-const UnprotectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isInitialized, isLoading } = useAuth();
   if (!isInitialized || isLoading) return <LoadingState />;
   return <>{children}</>;
 };
 
-const FallbackRoute: React.FC = () => {
-  const { user, isInitialized, isLoading } = useAuth();
-  if (!isInitialized || isLoading) return <LoadingState />;
-  return <Navigate to={user ? '/' : '/login'} replace />;
+const UnprotectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <>{children}</>;
 };
 
 const AppRoutes: React.FC = () => {
+  useEffect(() => {
+    const redirected = handleAuthRedirects();
+  }, []);
+
   return (
-    <>
-      <EventListener />
-      <Routes>
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
-        <Route path="/password-recovery" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-        <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
-        <Route path="/recovery/callback" element={<AuthCallbackRoute><RecoveryCallback /></AuthCallbackRoute>} />
-        <Route path="/confirm" element={<AuthCallbackRoute><Confirm /></AuthCallbackRoute>} />
-
-        <Route
-        path="/"
-        element={<PrivateRoute><Dashboard /></PrivateRoute>}
-      />
-      
-      <Route
-        path="/dashboard"
-        element={<PrivateRoute><Dashboard /></PrivateRoute>}
-      />
-
-        <Route
-        path="/invite/:token"
-        element={<UnprotectedRoute><InvitePage /></UnprotectedRoute>}
-      />
-
-        <Route path="*" element={<FallbackRoute />} />
-      </Routes>
-    </>
+    <Routes>
+      <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+      <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+      <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
+      <Route path="/password-recovery" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+      <Route path="/reset-password" element={<UnprotectedRoute><ResetPassword /></UnprotectedRoute>} />
+      <Route path="/recovery/callback" element={<AuthCallbackRoute><RecoveryCallback /></AuthCallbackRoute>} />
+      <Route path="/confirm" element={<AuthCallbackRoute><Confirm /></AuthCallbackRoute>} />
+      <Route path="/invite/:token" element={<UnprotectedRoute><InvitePage /></UnprotectedRoute>} />
+      <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/auth/callback" element={<UnprotectedRoute><AuthCallback /></UnprotectedRoute>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
 

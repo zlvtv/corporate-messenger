@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
 import styles from './Login.module.css';
 
 const Login: React.FC = () => {
@@ -11,17 +10,6 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { signIn } = useAuth();
-  const { state } = useLocation();
-
-  useEffect(() => {
-    if (state?.invite_token) {
-      try {
-        localStorage.setItem('invite_token', state.invite_token);
-      } catch (e) {
-        console.error('Не удалось сохранить в localStorage', e);
-      }
-    }
-  }, [state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,23 +18,9 @@ const Login: React.FC = () => {
 
     try {
       await signIn(email.trim(), password);
-
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('Не удалось получить пользователя');
-      }
-
-      const savedToken = localStorage.getItem('invite_token');
-
-      if (savedToken) {
-        localStorage.removeItem('invite_token');
-        window.dispatchEvent(new CustomEvent('invite_after_login', { detail: savedToken }));
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
-      console.error('[Login] Ошибка входа:', err);
-      setError(translateError(err.message));
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -62,9 +36,7 @@ const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label htmlFor="email" className={styles.label}>
-              Электронная почта
-            </label>
+            <label htmlFor="email" className={styles.label}>Электронная почта</label>
             <input
               id="email"
               type="email"
@@ -78,9 +50,7 @@ const Login: React.FC = () => {
           </div>
 
           <div className={styles.field}>
-            <label htmlFor="password" className={styles.label}>
-              Пароль
-            </label>
+            <label htmlFor="password" className={styles.label}>Пароль</label>
             <input
               id="password"
               type="password"
@@ -123,12 +93,6 @@ const Login: React.FC = () => {
       </div>
     </div>
   );
-};
-
-const translateError = (message: string): string => {
-  if (message.includes('Invalid login credentials')) return 'Неверный email или пароль';
-  if (message.includes('Email not confirmed')) return 'Email не подтверждён. Проверьте почту';
-  return 'Ошибка входа. Попробуйте снова';
 };
 
 export default Login;

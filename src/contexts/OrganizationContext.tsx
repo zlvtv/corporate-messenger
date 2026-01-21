@@ -10,7 +10,7 @@ import {
   type OrganizationWithMembers,
   type CreateOrganizationData,
 } from '../services/organizationService';
-import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
 
 interface OrganizationContextType {
   organizations: OrganizationWithMembers[];
@@ -37,24 +37,7 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        const orgs = await organizationService.getUserOrganizations();
-        setOrganizations(orgs);
-
-        const savedOrgId = localStorage.getItem('currentOrgId');
-        const savedOrg = orgs.find(o => o.id === savedOrgId) || orgs[0] || null;
-        setCurrentOrganization(savedOrg);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Ошибка инициализации организаций');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initialize();
-  }, []);
+  const { user } = useAuth();
 
   const refreshOrganizations = useCallback(async (): Promise<OrganizationWithMembers[]> => {
     try {
@@ -67,7 +50,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           setCurrentOrganization(updated);
         }
       }
-
       return orgs;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка');
@@ -86,17 +68,50 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [currentOrganization?.id]);
 
+  useEffect(() => {
+  const initialize = async () => {
+    if (!user) {
+      setOrganizations([]);
+      setCurrentOrganization(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const orgs = await organizationService.getUserOrganizations();
+      setOrganizations(orgs);
+
+      const savedOrgId = localStorage.getItem('currentOrgId');
+      const savedOrg = orgs.find(o => o.id === savedOrgId) || orgs[0] || null;
+      setCurrentOrganization(savedOrg);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  initialize();
+}, [user?.id]);
+
+  useEffect(() => {
+    if (currentOrganization) {
+      localStorage.setItem('currentOrgId', currentOrganization.id);
+    }
+  }, [currentOrganization]);
+
   const createOrganization = async (data: CreateOrganizationData): Promise<OrganizationWithMembers> => {
   setError(null);
   try {
     await organizationService.createOrganization(data);
-    const orgs = await refreshOrganizations();
+    const orgs = await refreshOrganizations(); 
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const newOrg = orgs.find(org => org.created_by === user?.id) ?? orgs[0];
-
+    const newOrg = orgs[0]; 
     if (newOrg) {
       setCurrentOrganization(newOrg);
+      localStorage.setItem('currentOrgId', newOrg.id);
     }
 
     return newOrg;
@@ -119,20 +134,18 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const leaveOrganization = async (organizationId: string) => {
-  setError(null);
-  try {
-    await organizationService.leaveOrganization(organizationId);
-    await refreshOrganizations();
-
-    if (currentOrganization?.id === organizationId) {
-      setCurrentOrganization(null); 
+    setError(null);
+    try {
+      await organizationService.leaveOrganization(organizationId);
+      await refreshOrganizations();
+      if (currentOrganization?.id === organizationId) {
+        setCurrentOrganization(null);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка выхода из организации');
+      throw err;
     }
-  } catch (err) {
-    setError(err instanceof Error ? err.message : 'Ошибка выхода из организации');
-    throw err;
-  }
-};
-
+  };
 
   const deleteOrganization = async (organizationId: string) => {
     setError(null);
@@ -179,12 +192,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       throw err;
     }
   };
-
-  useEffect(() => {
-    if (currentOrganization) {
-      localStorage.setItem('currentOrgId', currentOrganization.id);
-    }
-  }, [currentOrganization]);
 
   const value = {
     organizations,

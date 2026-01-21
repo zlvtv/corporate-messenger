@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import { getAuth, confirmPasswordReset } from 'firebase/auth';
 import styles from './ResetPassword.module.css';
 
 const ResetPassword: React.FC = () => {
@@ -8,21 +8,18 @@ const ResetPassword: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);  
   const navigate = useNavigate();
-
-  const validatePassword = (pass: string): string | null => {
-    if (pass.length < 6) return 'Пароль должен быть не менее 6 символов';
-    return null;
-  };
+  const auth = getAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
+    setIsSuccess(false);
 
-    const passError = validatePassword(password);
-    if (passError) {
-      setError(passError);
+    if (password.length < 6) {
+      setError('Пароль должен быть не менее 6 символов');
       setIsLoading(false);
       return;
     }
@@ -33,21 +30,27 @@ const ResetPassword: React.FC = () => {
       return;
     }
 
+    const oobCode = localStorage.getItem('reset_password_oobCode');
+    if (!oobCode) {
+      setError('Ссылка недействительна или истекла');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { data, error: updateError } = await supabase.auth.updateUser({ password });
+      await confirmPasswordReset(auth, oobCode, password);
 
-      if (updateError) {
-        setError(updateError.message.includes('Invalid token')
-          ? 'Ссылка устарела. Повторите запрос.'
-          : 'Не удалось изменить пароль.');
-        setIsLoading(false);
-        return;
+      localStorage.removeItem('reset_password_oobCode');
+      setIsSuccess(true);
+    } catch (err: any) {
+      console.error('Ошибка сброса пароля:', err);
+      if (err.code === 'auth/invalid-action-code') {
+        setError('Ссылка недействительна или уже использована');
+      } else if (err.code === 'auth/expired-action-code') {
+        setError('Срок действия ссылки истек');
+      } else {
+        setError('Не удалось сменить пароль');
       }
-
-      await supabase.auth.signOut();
-      navigate('/login?message=Пароль успешно изменён');
-    } catch {
-      setError('Произошла ошибка сети');
     } finally {
       setIsLoading(false);
     }
@@ -57,51 +60,69 @@ const ResetPassword: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.formWrapper}>
         <h1 className={styles.title}>Новый пароль</h1>
-        <p className={styles.subtitle}>Введите и подтвердите новый пароль</p>
-        {error && <div className={styles.error}>{error}</div>}
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.field}>
-            <label htmlFor="password" className={styles.label}>Новый пароль</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              disabled={isLoading}
-              className={styles.input}
-              autoComplete="new-password"
-            />
+
+        {isSuccess ? (
+          <div className={styles.successContainer}>
+            <h2 className={styles.successTitle}>Пароль изменён!</h2>
+            <p className={styles.successText}>
+              Теперь вы можете войти с новым паролем.
+            </p>
+            <button
+              className={styles.submit}
+              onClick={() => navigate('/login')}
+            >
+              Войти
+            </button>
           </div>
-          <div className={styles.field}>
-            <label htmlFor="confirmPassword" className={styles.label}>Подтвердите</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              disabled={isLoading}
-              className={styles.input}
-              autoComplete="new-password"
-            />
-          </div>
-          <button type="submit" className={styles.submit} disabled={isLoading}>
-            {isLoading ? 'Сохранение...' : 'Сменить пароль'}
-          </button>
-        </form>
-        <p className={styles.footer}>
-          <button
-            type="button"
-            className={styles.link}
-            onClick={() => navigate('/login')}
-            disabled={isLoading}
-          >
-            ← Назад ко входу
-          </button>
-        </p>
+        ) : (
+          <>
+            <p className={styles.subtitle}>Введите и подтвердите новый пароль</p>
+            {error && <div className={styles.error}>{error}</div>}
+            <form onSubmit={handleSubmit} className={styles.form}>
+              <div className={styles.field}>
+                <label htmlFor="password" className={styles.label}>Новый пароль</label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  disabled={isLoading}
+                  className={styles.input}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="confirmPassword" className={styles.label}>Подтвердите</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  disabled={isLoading}
+                  className={styles.input}
+                  autoComplete="new-password"
+                />
+              </div>
+              <button type="submit" className={styles.submit} disabled={isLoading}>
+                {isLoading ? 'Сохранение...' : 'Сменить пароль'}
+              </button>
+            </form>
+            <p className={styles.footer}>
+              <button
+                type="button"
+                className={styles.link}
+                onClick={() => navigate('/login')}
+                disabled={isLoading}
+              >
+                ← Назад ко входу
+              </button>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
