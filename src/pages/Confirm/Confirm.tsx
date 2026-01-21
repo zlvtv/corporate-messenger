@@ -114,11 +114,7 @@ useEffect(() => {
           Мы отправили письмо на <strong>{currentUser?.email}</strong>. Перейдите по ссылке, чтобы подтвердить аккаунт.
         </p>
 
-        <button className={styles.submit} onClick={handleResend}>
-          Отправить письмо повторно
-        </button>
-
-        <button className={styles.secondary} onClick={handleGoToLogin}>
+        <button className={styles.submit} onClick={handleGoToLogin}>
           Войти
         </button>
 
