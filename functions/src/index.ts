@@ -45,7 +45,7 @@ export const generateInviteLink = functions.https.onCall(
       { expiresIn: '24h' }
     );
 
-    const inviteLink = `${process.env.REACT_APP_BASE_URL || 'http://localhost:3000'}/invite/${token}`;
+    const inviteLink = `${process.env.REACT_APP_BASE_URL || 'https://teambridge-ncqq.onrender.com'}/invite/${token}`;
 
     return { invite_link: inviteLink };
   }
