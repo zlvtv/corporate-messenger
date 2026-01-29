@@ -1,10 +1,9 @@
 import { Organization, OrganizationWithMembers, CreateOrganizationData, OrganizationInvite } from '../types/organization.types';
 import { auth, db } from '../lib/firebase';
 import {
-  getCollection,
+  getDocById,
   createDoc,
   deleteDocById,
-  getDocById,
 } from '../lib/firestore';
 import {
   collection,
@@ -15,7 +14,6 @@ import {
   getDocsFromServer,
   writeBatch,
   serverTimestamp,
-  getDocFromServer,
   updateDoc,
 } from 'firebase/firestore';
 
@@ -57,133 +55,156 @@ const buildUserFromSnapshot = (userSnap: any, userId: string) => {
 };
 
 export const organizationService = {
-  async getOrganizationsLite(): Promise<Organization[]> {
-    const userId = getCurrentUserId();
-    if (!userId) return [];
-
-    const orgs = await getCollection('organizations');
-    return orgs
-      .filter((org: any) => org.members?.includes(userId))
-      .map(({ id, name, description, created_by, createdAt, updatedAt }: any) => ({
-        id,
-        name,
-        description,
-        created_by,
-        created_at: createdAt?.toDate ? createdAt.toDate().toISOString() : createdAt,
-        updated_at: updatedAt?.toDate ? updatedAt.toDate().toISOString() : updatedAt,
-      }));
-  },
-
   async getUserOrganizations(forceServer = false): Promise<OrganizationWithMembers[]> {
   const userId = getCurrentUserId();
   if (!userId) return [];
 
-  const orgQuery = query(
-    collection(db, 'organizations'),
-    where('members', 'array-contains', userId)
-  );
-
-  let orgSnap;
   try {
-    if (forceServer) {
-      orgSnap = await getDocsFromServer(orgQuery); 
-    } else {
-      orgSnap = await getDocsFromServer(orgQuery);
-    }
-  } catch (err) {
-    console.warn('Falling back to cache for organizations:', err);
-    orgSnap = await getDocs(orgQuery);
-  }
-  const orgs = orgSnap.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-
-  const result: OrganizationWithMembers[] = [];
-
-  for (const org of orgs) {
     const membersQuery = query(
       collection(db, 'organization_members'),
-      where('organization_id', '==', org.id)
+      where('user_id', '==', userId)
     );
+
     let membersSnap;
     try {
-      const snap = await getDocsFromServer(membersQuery);
-      membersSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      membersSnap = forceServer ? await getDocsFromServer(membersQuery) : await getDocs(membersQuery);
     } catch (err) {
       const snap = await getDocs(membersQuery);
       membersSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
-    const membersWithUsers = await Promise.all(
-      membersSnap.map(async (member: any) => {
-        const userSnap = await getDocById('users', member.user_id);
-        const user = buildUserFromSnapshot(userSnap, member.user_id);
+    const memberRecords = membersSnap.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
-        return {
-          ...member,
-          joined_at: member.joined_at?.toDate ? member.joined_at.toDate().toISOString() : member.joined_at,
-          user,
-        };
-      })
+    if (memberRecords.length === 0) return [];
+    const orgIds = [...new Set(memberRecords.map(m => m.organization_id))];
+
+    const orgsQuery = query(
+      collection(db, 'organizations'),
+      where('__name__', 'in', orgIds)
     );
 
-    const lastActivityAt = membersWithUsers
-      .map(m => new Date(m.joined_at).getTime())
-      .sort((a, b) => b - a)[0]; 
+    let orgSnap;
+    try {
+      orgSnap = forceServer ? await getDocsFromServer(orgsQuery) : await getDocs(orgsQuery);
+    } catch (err) {
+      const snap = await getDocs(orgsQuery);
+      orgSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
 
-    result.push({
-      ...org,
-      created_at: org.createdAt?.toDate ? org.createdAt.toDate().toISOString() : org.createdAt,
-      updated_at: org.updatedAt?.toDate ? org.updatedAt.toDate().toISOString() : org.updatedAt,
-      organization_members: membersWithUsers,
-      lastActivityAt: new Date(lastActivityAt).toISOString(), 
+    const organizations = orgSnap.docs.map(doc => ({
+      id: doc.id, 
+      ...doc.data(),
+      created_at: doc.data().created_at?.toDate ? doc.data().created_at.toDate().toISOString() : null,
+      updated_at: doc.data().updated_at?.toDate ? doc.data().updated_at.toDate().toISOString() : null,
+    })) as Organization[];
+
+    const result: OrganizationWithMembers[] = [];
+
+    for (const org of organizations) {
+      const membersOfOrgQuery = query(
+        collection(db, 'organization_members'),
+        where('organization_id', '==', org.id)
+      );
+
+      let membersOfOrgSnap;
+      try {
+        membersOfOrgSnap = forceServer 
+          ? await getDocsFromServer(membersOfOrgQuery)
+          : await getDocs(membersOfOrgQuery);
+      } catch (err) {
+        const snap = await getDocs(membersOfOrgQuery);
+        membersOfOrgSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+
+      const membersWithUsers = await Promise.all(
+        membersOfOrgSnap.docs.map(async (memberDoc) => {
+          const memberData = { id: memberDoc.id, ...memberDoc.data() };
+          const userSnap = await getDocById('users', memberData.user_id);
+          const user = buildUserFromSnapshot(userSnap, memberData.user_id);
+
+          return {
+            ...memberData,
+            joined_at: memberData.joined_at?.toDate 
+              ? memberData.joined_at.toDate().toISOString() 
+              : null,
+            user,
+          };
+        })
+      );
+
+      const lastActivityAt = Math.max(...membersWithUsers.map(m => new Date(m.joined_at).getTime()));
+
+      result.push({
+        ...org,
+        organization_members: membersWithUsers,
+        lastActivityAt: new Date(lastActivityAt).toISOString(),
+      });
+    }
+
+    return result.sort((a, b) => {
+      const dateA = new Date(a.lastActivityAt).getTime();
+      const dateB = new Date(b.lastActivityAt).getTime();
+      return dateB - dateA;
     });
+  } catch (err) {
+    return [];
   }
-
-  return result.sort((a, b) => {
-    const dateA = new Date(a.lastActivityAt).getTime();
-    const dateB = new Date(b.lastActivityAt).getTime();
-    return dateB - dateA; 
-  });
 },
 
-  async createOrganization(data: CreateOrganizationData): Promise<OrganizationWithMembers> {
-    const userId = getCurrentUserId();
-    if (!userId) throw new Error('Пользователь не авторизован');
+  
+async createOrganization(data: CreateOrganizationData): Promise<OrganizationWithMembers> {
+  const userId = getCurrentUserId();
+  if (!userId) throw new Error('Пользователь не авторизован');
 
-    const orgData = {
-      name: data.name,
-      description: data.description || null,
-      created_by: userId,
-      members: [userId],
-    };
+  const orgData = {
+    name: data.name,
+    description: data.description || null,
+    created_by: userId,
+  };
 
-    const newOrg = await createDoc('organizations', orgData);
+  const newOrg = await createDoc('organizations', orgData);
 
-    await createDoc('organization_members', {
-      organization_id: newOrg.id,
-      user_id: userId,
-      role: 'owner',
-      joined_at: serverTimestamp(),
-    });
+  await createDoc('organization_members', {
+    organization_id: newOrg.id,
+    user_id: userId,
+    role: 'owner',
+    joined_at: serverTimestamp(),
+  });
 
-    const user = getCurrentUser();
+  const commonProject = await createDoc('projects', {
+    organization_id: newOrg.id,
+    name: 'Общий',
+    description: 'Общий чат всей организации',
+    created_by: userId,
+    created_at: serverTimestamp(),
+  });
 
-    return {
-      ...newOrg,
-      organization_members: [
-        {
-          id: 'temp',
-          organization_id: newOrg.id,
-          user_id: userId,
-          role: 'owner',
-          joined_at: new Date().toISOString(),
-          user: user!,
-        },
-      ],
-    };
-  },
+  await createDoc('project_members', {
+    project_id: commonProject.id,
+    user_id: userId,
+    role: 'owner',
+    joined_at: serverTimestamp(),
+  });
+
+  const userObj = getCurrentUser();
+
+  return {
+    ...newOrg,
+    organization_members: [
+      {
+        id: 'temp',
+        organization_id: newOrg.id,
+        user_id: userId,
+        role: 'owner',
+        joined_at: new Date().toISOString(),
+        user: userObj!,
+      },
+    ],
+  };
+},
 
   async joinOrganization(inviteToken: string): Promise<{ organizationId: string; orgName: string }> {
     const inviteSnap = await getDocById('organization_invites', inviteToken);
@@ -209,13 +230,11 @@ export const organizationService = {
       const snap = await getDocsFromServer(q);
       memberSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (err) {
-      console.warn('Falling back to cache for member check:', err);
       const snap = await getDocs(q);
       memberSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
 
     if (memberSnap.length > 0) {
-      console.warn('Stale entry found, cleaning:', memberSnap[0]);
       await deleteDocById('organization_members', memberSnap[0].id);
     }
 
@@ -225,18 +244,6 @@ export const organizationService = {
       role: 'member',
       joined_at: serverTimestamp(),
     });
-
-    const orgRef = doc(db, 'organizations', organizationId);
-    const orgSnap = await getDocFromServer(orgRef);
-    if (orgSnap.exists()) {
-      const data = orgSnap.data();
-      const members = data.members || [];
-      if (!members.includes(userId)) {
-        await updateDoc(orgRef, {
-          members: [...members, userId],
-        });
-      }
-    }
 
     await deleteDocById('organization_invites', inviteToken);
 
@@ -296,7 +303,7 @@ export const organizationService = {
     tasksSnap.docs.forEach((taskDoc) => batch.delete(taskDoc.ref));
 
     await batch.commit();
-  },
+    },
 
   async isUserInOrganization(organizationId: string, userId: string): Promise<boolean> {
   const membersQuery = query(
@@ -311,41 +318,29 @@ export const organizationService = {
     const snap = await getDocs(membersQuery);
     return !snap.empty;
   }
-},
+  },
 
   async leaveOrganization(organizationId: string): Promise<void> {
-  const userId = getCurrentUserId();
-  if (!userId) throw new Error('Не авторизован');
+    const userId = getCurrentUserId();
+    if (!userId) throw new Error('Не авторизован');
 
-  const membersQuery = query(
-    collection(db, 'organization_members'),
-    where('organization_id', '==', organizationId),
-    where('user_id', '==', userId)
-  );
-  let membersSnap;
-  try {
-    const snap = await getDocsFromServer(membersQuery);
-    membersSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  } catch (err) {
-    const snap = await getDocs(membersQuery);
-    membersSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  }
-
-  const member = membersSnap[0];
-  if (member) {
-    await deleteDocById('organization_members', member.id);
-  }
-
-  const orgRef = doc(db, 'organizations', organizationId);
-  const orgSnap = await getDocFromServer(orgRef);
-  if (orgSnap.exists()) {
-    const data = orgSnap.data();
-    const members = data.members || [];
-    if (members.includes(userId)) {
-      await updateDoc(orgRef, {
-        members: members.filter((id: string) => id !== userId),
-      });
+    const membersQuery = query(
+      collection(db, 'organization_members'),
+      where('organization_id', '==', organizationId),
+      where('user_id', '==', userId)
+    );
+    let membersSnap;
+    try {
+      const snap = await getDocsFromServer(membersQuery);
+      membersSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (err) {
+      const snap = await getDocs(membersQuery);
+      membersSnap = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
-  }
-},
+
+    const member = membersSnap[0];
+    if (member) {
+      await deleteDocById('organization_members', member.id);
+    }
+  },
 };

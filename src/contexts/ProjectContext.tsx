@@ -7,7 +7,19 @@ import React, {
 } from 'react';
 import { useOrganization } from './OrganizationContext';
 import { useAuth } from './AuthContext';
-import { api } from '../lib/api';  
+import { db } from '../lib/firebase';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  serverTimestamp,
+} from 'firebase/firestore';
 
 interface ProjectMember {
   id: string;
@@ -22,25 +34,17 @@ interface ProjectMember {
   };
 }
 
-interface TaskAssignee {
-  task_id: string;
-  user_id: string;
-  assigned_by: string;
-  assigned_at: string;
-}
-
 interface Task {
   id: string;
   project_id: string;
   title: string;
   description: string | null;
-  created_at: string;
-  created_by: string;
-  due_date: string | null;
   status: 'todo' | 'in_progress' | 'done';
   priority: 'low' | 'medium' | 'high';
-  source_message_id: string | null;
-  assignees: TaskAssignee[];
+  due_date: string | null;
+  created_by: string;
+  created_at: string;
+  assignees: string[];
 }
 
 interface Project {
@@ -64,37 +68,35 @@ interface ProjectContextType {
   refreshProjects: () => Promise<Project[]>;
   isMember: (projectId: string) => boolean;
   canManageTasks: (projectId: string) => boolean;
+  canCreateProjects: () => boolean;
+  canRemoveMembers: () => boolean;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
-const generateId = () => Date.now().toString();
+const getDocById = async (collectionName: string, id: string) => {
+  const docRef = doc(db, collectionName, id);
+  const docSnap = await getDocs(query(collection(db, collectionName), where('__name__', '==', id)));
+  return docSnap.docs[0]?.data() || null;
+};
 
-let MOCK_PROJECTS: Project[] = [
-  {
-    id: 'proj-1',
-    organization_id: 'org-1',
-    name: 'Веб-платформа',
-    description: 'Разработка дашборда',
-    created_at: '2025-01-21T09:00:00Z',
-    created_by: 'user-1',
-    members: [
-      {
-        id: 'member-1',
-        user_id: 'user-1',
-        role: 'owner',
-        joined_at: '2025-01-21T09:00:00Z',
-        profile: {
-          id: 'user-1',
-          username: 'demo_user',
-          full_name: 'Demo User',
-          avatar_url: null,
-        },
-      },
-    ],
-    tasks: [],
-  },
-];
+const buildUserFromSnapshot = (userSnap: any, userId: string) => {
+  if (!userSnap) {
+    const fallbackUsername = `user_${userId.slice(-5)}`;
+    return {
+      id: userId,
+      username: fallbackUsername,
+      full_name: fallbackUsername,
+      avatar_url: null,
+    };
+  }
+  return {
+    id: userId,
+    username: userSnap.username || userSnap.email?.split('@')[0] || `user_${userId.slice(-5)}`,
+    full_name: userSnap.full_name || userSnap.username || 'Пользователь',
+    avatar_url: userSnap.avatar_url || null,
+  };
+};
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -106,38 +108,85 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { user } = useAuth();
 
   const fetchProjects = useCallback(async (): Promise<Project[]> => {
-    if (!currentOrganization || !user) return [];
+    if (!currentOrganization || !user) {
+      setProjects([]);
+      setIsLoading(false);
+      return [];
+    }
 
     try {
       setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 500)); 
+      const q = query(
+        collection(db, 'projects'),
+        where('organization_id', '==', currentOrganization.id)
+      );
+      const snap = await getDocs(q);
 
-      const orgProjects = MOCK_PROJECTS.filter(p => p.organization_id === currentOrganization.id);
+      const fetchedProjects = await Promise.all(
+        snap.docs.map(async (docSnap) => {
+          const projData = { id: docSnap.id, ...docSnap.data() } as Omit<Project, 'members' | 'tasks'>;
 
-      setProjects(orgProjects);
+          const membersQuery = query(
+            collection(db, 'project_members'),
+            where('project_id', '==', projData.id)
+          );
+          const membersSnap = await getDocs(membersQuery);
+          const members = await Promise.all(
+            membersSnap.docs.map(async (mDoc) => {
+              const mData = mDoc.data();
+              const userSnap = await getDocById('users', mData.user_id);
+              const profile = buildUserFromSnapshot(userSnap, mData.user_id);
+              return {
+                id: mDoc.id,
+                ...mData,
+                user: profile,
+              };
+            })
+          );
 
-      const savedId = localStorage.getItem('currentProjectId');
-      const savedProject = orgProjects.find(p => p.id === savedId) || orgProjects[0] || null;
-      setCurrentProject(savedProject);
+          const tasksQuery = query(
+            collection(db, 'tasks'),
+            where('project_id', '==', projData.id)
+          );
+          const tasksSnap = await getDocs(tasksQuery);
+          const tasks = tasksSnap.docs.map(t => ({ id: t.id, ...t.data() })) as Task[];
 
-      return orgProjects;
+          return { ...projData, members, tasks };
+        })
+      );
+
+      setProjects(fetchedProjects);
+      return fetchedProjects;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка загрузки проектов');
+      setError(err instanceof Error ? err.message : 'Ошибка');
       return [];
+    } finally {
+      setIsLoading(false);
     }
   }, [currentOrganization?.id, user?.id]);
 
-  const refreshProjects = useCallback(async () => {
-    return await fetchProjects();
-  }, [fetchProjects]);
+  const refreshProjects = useCallback(() => fetchProjects(), [fetchProjects]);
 
   const createProject = async (name: string, description?: string): Promise<Project> => {
     if (!currentOrganization || !user) throw new Error('Нет доступа');
 
-    await new Promise(resolve => setTimeout(resolve, 600));
+    const projRef = await addDoc(collection(db, 'projects'), {
+      organization_id: currentOrganization.id,
+      name,
+      description: description || null,
+      created_by: user.id,
+      created_at: serverTimestamp(),
+    });
+
+    const memberRef = await addDoc(collection(db, 'project_members'), {
+      project_id: projRef.id,
+      user_id: user.id,
+      role: 'owner',
+      joined_at: serverTimestamp(),
+    });
 
     const newProject: Project = {
-      id: 'proj-' + generateId(),
+      id: projRef.id,
       organization_id: currentOrganization.id,
       name,
       description: description || null,
@@ -145,7 +194,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       created_by: user.id,
       members: [
         {
-          id: 'member-' + generateId(),
+          id: memberRef.id,
           user_id: user.id,
           role: 'owner',
           joined_at: new Date().toISOString(),
@@ -160,8 +209,7 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       tasks: [],
     };
 
-    MOCK_PROJECTS.push(newProject);
-    setProjects(prev => [newProject, ...prev]);
+    setProjects((prev) => [newProject, ...prev]);
     setCurrentProject(newProject);
     localStorage.setItem('currentProjectId', newProject.id);
 
@@ -178,23 +226,53 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return member?.role === 'owner' || member?.role === 'moderator';
   };
 
+  const canCreateProjects = () => {
+    return !!user && (
+      currentOrganization?.created_by === user.id ||
+      currentOrganization?.moderators?.includes(user.id)
+    );
+  };
+
+  const canRemoveMembers = () => {
+    return canCreateProjects();
+  };
+
   useEffect(() => {
-    if (currentOrganization) {
-      fetchProjects().finally(() => setIsLoading(false));
-    } else {
-      setProjects([]);
+    if (!currentOrganization) return;
+
+    const q = query(
+      collection(db, 'projects'),
+      where('organization_id', '==', currentOrganization.id)
+    );
+
+    const unsubscribe = onSnapshot(q, () => {
+      fetchProjects();
+    });
+
+    return () => unsubscribe();
+  }, [currentOrganization, fetchProjects]);
+
+  useEffect(() => {
+    if (projects.length === 0) {
       setCurrentProject(null);
-      setIsLoading(false);
+      return;
     }
-  }, [currentOrganization?.id]);
 
-  useEffect(() => {
-    if (currentProject) {
-      localStorage.setItem('currentProjectId', currentProject.id);
+    const savedId = localStorage.getItem('currentProjectId');
+    if (savedId) {
+      const saved = projects.find(p => p.id === savedId);
+      if (saved) {
+        setCurrentProject(saved);
+        return;
+      }
     }
-  }, [currentProject]);
 
-  const value: ProjectContextType = {
+    const firstProject = projects[0];
+    setCurrentProject(firstProject);
+    localStorage.setItem('currentProjectId', firstProject.id);
+  }, [projects]);
+
+  const value = {
     projects,
     currentProject,
     isLoading,
@@ -204,6 +282,8 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
     refreshProjects,
     isMember,
     canManageTasks,
+    canCreateProjects,
+    canRemoveMembers,
   };
 
   return (

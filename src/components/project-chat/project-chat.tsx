@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import styles from './project-chat.module.css';
 import { useProject } from '../../contexts/ProjectContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useOrganization } from '../../contexts/OrganizationContext';
 import DOMPurify from 'dompurify';
 import CreateTaskModal from '../../components/modals/create-task-modal/create-task-modal';
 import { getMessages, sendMessage, subscribeToMessages } from '../../lib/firestore';
+import { encryptMessage, decryptMessage } from '../../lib/crypto';
 
 const ProjectChat: React.FC = () => {
   const [messages, setMessages] = useState<any[]>([]);
@@ -14,6 +16,7 @@ const ProjectChat: React.FC = () => {
 
   const { currentProject } = useProject();
   const { user } = useAuth();
+  const { currentOrganization } = useOrganization();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -23,11 +26,13 @@ const ProjectChat: React.FC = () => {
     x: number;
     y: number;
     message: any;
+    type: 'message' | 'text';
   }>({
     show: false,
     x: 0,
     y: 0,
     message: null,
+    type: 'text',
   });
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -39,12 +44,19 @@ const ProjectChat: React.FC = () => {
     setError(null);
 
     const unsubscribe = subscribeToMessages(currentProject.id, (fetchedMessages) => {
-      setMessages(fetchedMessages);
+      const sortedMessages = [...fetchedMessages].sort((a, b) => {
+        const aTime = a.created_at?.seconds || 0;
+        const bTime = b.created_at?.seconds || 0;
+        return aTime - bTime;
+      });
+      setMessages(sortedMessages);
       setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, [currentProject?.id]);
+
+
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +69,8 @@ const ProjectChat: React.FC = () => {
     setError(null);
 
     try {
-      await sendMessage(currentProject.id, newMessage.trim(), user.id);
+      const encryptedText = encryptMessage(newMessage.trim(), currentProject.id);
+      await sendMessage(currentProject.id, encryptedText, user.id);
       setNewMessage('');
       if (textareaRef.current) textareaRef.current.style.height = 'auto';
     } catch (err: any) {
@@ -76,38 +89,48 @@ const ProjectChat: React.FC = () => {
   }, [messages.length]);
 
   useEffect(() => {
-    const handleClick = () => {
+    const handleClick = (e: MouseEvent) => {
+      const selection = window.getSelection();
+      if (selection && selection.toString().length > 0) {
+        return; 
+      }
       setContextMenu({ show: false, x: 0, y: 0, message: null });
     };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, []);
 
-  const showContextMenu = (e: React.MouseEvent, message: any) => {
-    e.preventDefault();
-    if (message.sender_id !== user?.id) return; 
-
-    setContextMenu({
-      show: true,
-      x: e.clientX,
-      y: e.clientY,
-      message,
-    });
-  };
-
   const renderContent = (content: string) => {
-    return {
-      __html: DOMPurify.sanitize(content, {
-        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br'],
-      }),
-    };
+    try {
+      const decrypted = content ? decryptMessage(content, currentProject!.id) : '';
+      return {
+        __html: DOMPurify.sanitize(decrypted, {
+          ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'p', 'br'],
+        }),
+      };
+    } catch (err) {
+      return { __html: '' }; 
+    }
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    try {
+      if (dateString && typeof dateString === 'object' && 'seconds' in dateString) {
+        const date = new Date(dateString.seconds * 1000);
+        return date.toLocaleTimeString('ru-RU', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+      }
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (err) {
+      return '';
+    }
   };
 
   if (!currentProject) {
@@ -134,28 +157,47 @@ const ProjectChat: React.FC = () => {
         ) : (
           messages.map((msg) => {
             const isMyMessage = msg.sender_id === user?.id;
-            const sender = isMyMessage ? user : { ...msg.profiles }; 
+            const sender = isMyMessage 
+              ? user 
+              : (msg.sender_profile || 
+                 currentOrganization?.organization_members?.find(m => m.user_id === msg.sender_id)?.user || 
+                 { full_name: 'Пользователь', username: 'Пользователь' });
+
+            const senderName = sender?.full_name || sender?.username || sender?.email || 'Пользователь';
 
             return (
               <div
                 key={msg.id}
                 className={`${styles.message} ${isMyMessage ? styles['message-mine'] : ''}`}
-                onContextMenu={(e) => showContextMenu(e, msg)}
-                title="Правый клик — создать задачу"
+                onMouseDown={(e) => {
+                  const selection = window.getSelection();
+                  if (selection && selection.toString().length > 0) {
+                  }
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  const selection = window.getSelection();
+                  const textSelected = selection && selection.toString().length > 0;
+                  setContextMenu({
+                    show: true,
+                    x: e.clientX,
+                    y: e.clientY,
+                    message: msg,
+                    type: textSelected ? 'text' : 'message',
+                  });
+                }}
+                title="Правый клик — управление сообщением"
               >
-                {!isMyMessage && (
-                  <div
-                    className={styles['avatar']}
-                    style={{ backgroundImage: sender.avatar_url ? `url(${sender.avatar_url})` : 'none' }}
-                    title={sender.full_name || sender.username}
-                  >
-                    {!sender.avatar_url && (
-                      <span>{(sender.full_name || sender.username)?.charAt(0).toUpperCase()}</span>
-                    )}
-                  </div>
-                )}
+                <div className={styles['avatar']} title={senderName}>
+                  {sender?.avatar_url ? (
+                    <img src={sender.avatar_url} alt="" />
+                  ) : (
+                    <span>{senderName.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
 
                 <div className={styles['message-content']}>
+                  <div className={styles['message-sender']}>{senderName}</div>
                   <div
                     className={styles['message-text']}
                     dangerouslySetInnerHTML={renderContent(msg.text)}
@@ -174,15 +216,42 @@ const ProjectChat: React.FC = () => {
             style={{ top: contextMenu.y, left: contextMenu.x }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              className={styles.menuItem}
-              onClick={() => {
-                setIsTaskModalOpen(true);
-                setContextMenu({ show: false, x: 0, y: 0, message: null });
-              }}
-            >
-              📌 Сделать задачей
-            </button>
+            <>
+              <button
+                className={styles.menuItem}
+                onClick={() => {
+                  try {
+                    const decrypted = decryptMessage(contextMenu.message.text, currentProject!.id);
+                    navigator.clipboard.writeText(decrypted);
+                  } catch {
+                    navigator.clipboard.writeText(contextMenu.message.text);
+                  }
+                  setContextMenu({ show: false, x: 0, y: 0, message: null, type: 'message' });
+                }}
+              >
+                📋 Копировать
+              </button>
+              <button
+                className={styles.menuItem}
+                onClick={() => {
+                  setIsTaskModalOpen(true);
+                  setContextMenu({ show: false, x: 0, y: 0, message: null, type: 'message' });
+                }}
+              >
+                Сделать задачей
+              </button>
+              {contextMenu.message.sender_id === user?.id && (
+                <button
+                  className={styles.menuItem}
+                  onClick={() => {
+                    setContextMenu({ show: false, x: 0, y: 0, message: null, type: 'message' });
+                    alert('Удаление сообщения пока не реализовано');
+                  }}
+                >
+                  🗑️ Удалить
+                </button>
+              )}
+            </>
           </div>
         )}
 
@@ -216,8 +285,6 @@ const ProjectChat: React.FC = () => {
           Отправить
         </button>
       </form>
-
-      <div className={styles['char-count']}>{newMessage.length}/4000</div>
     </div>
   );
 };

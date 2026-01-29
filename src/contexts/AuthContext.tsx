@@ -150,7 +150,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await firebaseSignInAnonymously(auth);
     } catch (err: any) {
-      console.error('Anonymous sign-in failed:', err);
       throw err;
     }
   };

@@ -15,6 +15,27 @@ import {
   getDocFromServer,
 } from 'firebase/firestore';
 
+const buildUserFromSnapshot = (userSnap: any, userId: string) => {
+  if (!userSnap) {
+    const fallbackUsername = 'Пользователь';
+    return {
+      id: userId,
+      email: '',
+      username: fallbackUsername,
+      full_name: fallbackUsername,
+      avatar_url: null,
+    };
+  }
+
+  return {
+    id: userId,
+    email: userSnap.email || '',
+    username: userSnap.username || userSnap.email?.split('@')[0] || 'Пользователь',
+    full_name: userSnap.full_name || userSnap.username || userSnap.email?.split('@')[0] || 'Пользователь',
+    avatar_url: userSnap.avatar_url || null,
+  };
+};
+
 export const getCollection = async (collectionName: string) => {
   const snapshot = await getDocs(collection(db, collectionName));
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -25,7 +46,6 @@ export const getDocsByQuery = async (collectionName: string, q: any) => {
     const querySnapshot = await getDocsFromServer(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   } catch (err: any) {
-    console.warn('Server error, falling back to cache:', err.message);
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
@@ -37,7 +57,6 @@ export const getDocById = async (collectionName: string, id: string) => {
     const docSnap = await getDocFromServer(ref);
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
   } catch (err) {
-    console.warn('Falling back to cache for doc:', collectionName, id);
     const docSnap = await getDoc(ref);
     return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null;
   }
@@ -65,7 +84,14 @@ export const deleteDocById = async (collectionName: string, id: string) => {
 export const subscribeToMessages = (projectId: string, callback: (messages: any[]) => void) => {
   const q = query(collection(db, 'messages'), where('project_id', '==', projectId));
   return onSnapshot(q, snapshot => {
-    const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const messages = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        sender_profile: data.sender_profile
+      };
+    });
     callback(messages);
   });
 };

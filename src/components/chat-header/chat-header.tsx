@@ -19,9 +19,6 @@ const ChatHeader: React.FC = () => {
     <>
       <header className={styles['chat-header']}>
         <div className={styles['chat-header__tabs']} role="tablist">
-          <button role="tab" className={styles['chat-header__tab']} aria-selected="true">
-            Общий
-          </button>
           {projects.map((project) => (
             <button
               key={project.id}

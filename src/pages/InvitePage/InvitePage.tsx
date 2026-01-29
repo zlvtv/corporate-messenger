@@ -101,7 +101,6 @@ const InvitePage = () => {
 
         setTimeout(() => navigate('/dashboard', { replace: true }), 1500);
       } catch (err: any) {
-        console.error('Ошибка при обработке приглашения:', err);
         setError(err.message || 'Не удалось присоединиться к организации.');
         setStatus('error');
       } finally {

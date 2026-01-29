@@ -2,6 +2,9 @@
   "functions": {
     "source": "functions",
     "runtime": "nodejs20",
+    "minInstances": 0,
+    "maxInstances": 10,
+    "timeoutSeconds": 60,
     "env": [
       {
         "JWT_SECRET": "s3cr3t_k3y_f0r_inv1t3s_2025_abcdefghijklmnopqrstuvwxyz123456"
@@ -13,7 +16,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "public": "build",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",

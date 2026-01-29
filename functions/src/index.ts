@@ -4,19 +4,16 @@ import * as jwt from 'jsonwebtoken';
 
 admin.initializeApp();
 
-interface InviteData {
-  organizationId: string;
-}
 
-export const generateInviteLink = functions.https.onCall(
-  async (data: InviteData, context: functions.https.CallableContext) => {
-    const { organizationId } = data;
 
-    if (!context.auth) {
+export const generateInviteLink = functions.https.onCall(async (request) => {
+    const { organizationId } = request.data;
+
+    if (!request.auth) {
       throw new functions.https.HttpsError('unauthenticated', 'Требуется вход');
     }
 
-    const userId = context.auth.uid;
+    const userId = request.auth.uid;
 
     const orgDoc = await admin.firestore().collection('organizations').doc(organizationId).get();
     if (!orgDoc.exists) {

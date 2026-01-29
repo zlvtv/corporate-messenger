@@ -1,5 +1,5 @@
-/* src/styles/variables.css */
 :root {
+  /* Основные цвета */
   --color-primary: #2563eb;
   --color-primary-hover: #1d4ed8;
   --color-secondary: #64748b;
@@ -13,6 +13,24 @@
   --color-danger: #ef4444;
   --border-color: #e2e8f0;
 
+  /* Чат */
+  --chat-bg: #f9f9fb;
+  --chat-border: #e0e0e0;
+  --message-bg: white;
+  --message-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --input-bg: white;
+  --input-border: #ddd;
+  --send-btn-bg: #5a67d8;
+  --send-btn-disabled: #cbd5e1;
+  --error-bg: #fed7d7;
+  --error-text: #e53e3e;
+  --menu-bg: white;
+  --menu-border: #e0e0e0;
+  --menu-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --menu-hover: #f0f0f0;
+  --avatar-bg: #5a67d8;
+
+  /* Прочее */
   --space-xs: 4px;
   --space-s: 8px;
   --space-m: 16px;
@@ -34,6 +52,7 @@
 }
 
 .dark {
+  /* Основные цвета */
   --color-primary: #3b82f6;
   --color-primary-hover: #2563eb;
   --color-background: #111827;
@@ -46,4 +65,21 @@
   --border-color: #334155;
   --shadow-medium: 0 10px 25px rgba(0, 0, 0, 0.25);
   --color-danger: #f87171;
+
+  /* Чат — ТЁМНАЯ ТЕМА */
+  --chat-bg: #121212;          /* Почти чёрный фон чата */
+  --chat-border: #333;         /* Линия раздела */
+  --message-bg: #1e1e1e;       /* Слегка светлее фона — видно сообщение */
+  --message-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --input-bg: #2d2d2d;         /* Поле ввода — заметно темнее */
+  --input-border: #555;
+  --send-btn-bg: #667eea;      /* Яркая синяя кнопка */
+  --send-btn-disabled: #4a5568;
+  --error-bg: #4a1c1c;
+  --error-text: #fca5a5;
+  --menu-bg: #2d2d2d;
+  --menu-border: #555;
+  --menu-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --menu-hover: #3a3a3a;
+  --avatar-bg: #667eea;
 }

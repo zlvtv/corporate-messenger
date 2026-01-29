@@ -16,7 +16,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const Dashboard: React.FC = () => {
   const { isBoardFullscreen, theme, chatWidth, isCreateOrgModalOpen, openCreateOrgModal, closeCreateOrgModal } = useUI();
-  const { organizations, isLoading: orgLoading, refreshOrganizations, currentOrganization } = useOrganization(); // ❌ setCurrentOrganization убран из деструктуризации — не нужен здесь
+  const { organizations, isLoading: orgLoading, refreshOrganizations, currentOrganization } = useOrganization(); 
   const { currentProject } = useProject();
   const { user } = useAuth();
   const location = useLocation();
@@ -41,6 +41,13 @@ const Dashboard: React.FC = () => {
 
   if (!orgLoading && organizations.length === 0 && !isCreateOrgModalOpen) {
     return <EmptyDashboard />;
+  }
+
+  if (!currentOrganization && organizations.length > 0) {
+    const firstOrg = organizations[0];
+    localStorage.setItem('currentOrgId', firstOrg.id);
+    window.location.reload(); 
+    return <div className={styles.loading}>Инициализация организации...</div>;
   }
 
   return (

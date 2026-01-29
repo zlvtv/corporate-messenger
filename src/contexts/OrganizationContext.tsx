@@ -60,9 +60,6 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     if (updatedOrg) {
       setCurrentOrganization(updatedOrg);
-      if (currentOrganization.organization_members.length !== updatedOrg.organization_members.length) {
-        console.log('Участники обновлены:', updatedOrg.organization_members.length);
-      }
     } else {
       setCurrentOrganization(null);
     }

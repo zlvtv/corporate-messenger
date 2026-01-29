@@ -16,6 +16,41 @@ import ResetPassword from './pages/ResetPassword/ResetPassword';
 import AuthCallback from './pages/AuthCallback/AuthCallback';
 import RecoveryCallback from './pages/RecoveryCallback/RecoveryCallback';
 
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isInitialized, isLoading } = useAuth();
+
+  if (!isInitialized || isLoading) return <LoadingState />;
+  if (user) return <Navigate to="/dashboard" replace />;
+
+  return <>{children}</>;
+};
+
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isEmailVerified, isInitialized, isLoading } = useAuth();
+
+  if (!isInitialized || isLoading) return <LoadingState />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isEmailVerified) return <Navigate to="/confirm" replace />;
+
+  return <>{children}</>;
+};
+
+const UnprotectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isInitialized, isLoading } = useAuth();
+  if (!isInitialized && isLoading) return <LoadingState />;
+  return <>{children}</>;
+};
+
+const VerifyEmailRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isEmailVerified, isInitialized, isLoading } = useAuth();
+
+  if (!isInitialized || isLoading) return <LoadingState />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (isEmailVerified) return <Navigate to="/dashboard" replace />;
+
+  return <>{children}</>;
+};
+
 const handleAuthRedirects = () => {
   if (window.location.pathname === '/' && window.location.hash) {
     const hash = window.location.hash;
@@ -34,46 +69,11 @@ const handleAuthRedirects = () => {
   return false;
 };
 
-const redirected = handleAuthRedirects();
-
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isEmailVerified, isInitialized } = useAuth();
-
-  if (!isInitialized) return <LoadingState />;
-  if (!user) return <Navigate to="/login" replace />;
-  if (!isEmailVerified) return <Navigate to="/confirm" replace />;
-
-  return <>{children}</>;
-};
-
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isEmailVerified, isInitialized, isLoading } = useAuth();
-
-  if (!isInitialized || isLoading) return <LoadingState />;
-  if (user && isEmailVerified) return <Navigate to="/dashboard" replace />;
-
-  return <>{children}</>;
-};
-
-const AuthCallbackRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isInitialized, isLoading } = useAuth();
-  if (!isInitialized || isLoading) return <LoadingState />;
-  return <>{children}</>;
-};
-
-const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isInitialized } = useAuth();
-  if (!isInitialized) return <LoadingState />;
-  return <>{children}</>;
-};
-
-const UnprotectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <>{children}</>;
-};
-
 const AppRoutes: React.FC = () => {
   useEffect(() => {
-    const redirected = handleAuthRedirects();
+    if (handleAuthRedirects()) {
+      return;
+    }
   }, []);
 
   return (
@@ -82,12 +82,25 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/signup" element={<PublicRoute><SignUp /></PublicRoute>} />
       <Route path="/password-recovery" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-      <Route path="/reset-password" element={<UnprotectedRoute><ResetPassword /></UnprotectedRoute>} />
-      <Route path="/recovery/callback" element={<AuthCallbackRoute><RecoveryCallback /></AuthCallbackRoute>} />
-      <Route path="/confirm" element={<AuthCallbackRoute><Confirm /></AuthCallbackRoute>} />
-      <Route path="/invite/:token" element={<AuthRoute><InvitePage /></AuthRoute>} />
-      <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+
       <Route path="/auth/callback" element={<UnprotectedRoute><AuthCallback /></UnprotectedRoute>} />
+      <Route path="/recovery/callback" element={<UnprotectedRoute><RecoveryCallback /></UnprotectedRoute>} />
+
+      <Route
+        path="/reset-password"
+        element={
+          <UnprotectedRoute>
+            {useAuth().user ? <Navigate to="/dashboard" replace /> : <ResetPassword />}
+          </UnprotectedRoute>
+        }
+      />
+
+      <Route path="/confirm" element={<VerifyEmailRoute><Confirm /></VerifyEmailRoute>} />
+
+      <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+
+      <Route path="/invite/:token" element={<UnprotectedRoute><InvitePage /></UnprotectedRoute>} />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

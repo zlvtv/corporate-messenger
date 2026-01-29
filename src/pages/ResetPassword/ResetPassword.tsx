@@ -43,7 +43,6 @@ const ResetPassword: React.FC = () => {
       localStorage.removeItem('reset_password_oobCode');
       setIsSuccess(true);
     } catch (err: any) {
-      console.error('Ошибка сброса пароля:', err);
       if (err.code === 'auth/invalid-action-code') {
         setError('Ссылка недействительна или уже использована');
       } else if (err.code === 'auth/expired-action-code') {

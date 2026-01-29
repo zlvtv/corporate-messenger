@@ -39,7 +39,6 @@ const OrgInfoModal: React.FC<OrgInfoModalProps> = ({ anchorEl, onClose }) => {
 
   useEffect(() => {
   const fetchData = async () => {
-    console.log('🔄 OrgInfoModal: Обновление данных при открытии...');
     await refreshCurrentOrganization();
   };
   fetchData();

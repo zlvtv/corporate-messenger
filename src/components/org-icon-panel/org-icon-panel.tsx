@@ -47,7 +47,6 @@ const OrgIconPanel: React.FC = () => {
   };
 
   const handleOrgClick = (org: (typeof organizations)[0]) => {
-    console.log('👉 Выбрана организация:', org.name);
     setCurrentOrganization(org);
     localStorage.setItem('currentOrgId', org.id);
   };
