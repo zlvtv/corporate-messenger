@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useOrganization } from '../../contexts/OrganizationContext';
+import { useAuth } from '../../contexts/auth-context';
+import { useOrganization } from '../../contexts/organization-context';
 import { organizationService } from '../../services/organizationService';
 import { getDocById } from '../../lib/firestore';
 import Button from '../../components/ui/button/button';
-import styles from './InvitePage.module.css';
-import LoadingState from '../../components/ui/loading/LoadingState';
+import styles from './invite-page.module.css';
+import LoadingState from '../../components/ui/loading/loading';
 
 const InvitePage = () => {
   const { token } = useParams<{ token: string }>();

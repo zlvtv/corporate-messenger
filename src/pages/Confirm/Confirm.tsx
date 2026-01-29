@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth-context';
 import { auth } from '../../lib/firebase';
 import { applyActionCode, sendEmailVerification } from 'firebase/auth'; 
-import styles from './Confirm.module.css';
+import styles from './confirm.module.css';
 
 const Confirm: React.FC = () => {
   const navigate = useNavigate();

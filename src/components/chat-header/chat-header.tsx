@@ -1,6 +1,6 @@
 import React from 'react';
-import { useProject } from '../../contexts/ProjectContext';
-import { useUI } from '../../contexts/UIContext';
+import { useProject } from '../../contexts/project-context';
+import { useUI } from '../../contexts/ui-context';
 import CreateProjectModal from '../../components/modals/create-task-modal/create-task-modal';
 import styles from './chat-header.module.css';
 import { createPortal } from 'react-dom';

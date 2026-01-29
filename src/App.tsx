@@ -1,20 +1,20 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { UIProvider } from './contexts/UIContext';
-import { OrganizationProvider } from './contexts/OrganizationContext';
-import { ProjectProvider } from './contexts/ProjectContext';
+import { AuthProvider, useAuth } from './contexts/auth-context';
+import { UIProvider } from './contexts/ui-context';
+import { OrganizationProvider } from './contexts/organization-context';
+import { ProjectProvider } from './contexts/project-context';
 import Login from './pages/Login/Login';
-import SignUp from './pages/SignUp/SignUp';
-import Dashboard from './pages/Dashboard/Dashboard';
-import Confirm from './pages/Confirm/Confirm';
-import InvitePage from './pages/InvitePage/InvitePage';
-import Landing from './pages/Landing/Landing';
-import LoadingState from './components/ui/loading/LoadingState';
-import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
-import ResetPassword from './pages/ResetPassword/ResetPassword';
-import AuthCallback from './pages/AuthCallback/AuthCallback';
-import RecoveryCallback from './pages/RecoveryCallback/RecoveryCallback';
+import SignUp from './pages/sign-up/sign-up';
+import Dashboard from './pages/dashboard/dashboard';
+import Confirm from './pages/confirm/confirm';
+import InvitePage from './pages/invite-page/invite-page';
+import Landing from './pages/landing/landing';
+import LoadingState from './components/ui/loading/loading';
+import ForgotPassword from './pages/forgot-password/forgot-password';
+import ResetPassword from './pages/reset-password/reset-password';
+import AuthCallback from './pages/auth-callback/auth-callback';
+import RecoveryCallback from './pages/recovery-callback/recovery-callback';
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isInitialized, isLoading } = useAuth();

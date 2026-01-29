@@ -3,7 +3,7 @@ import Modal from '../../ui/modal/modal';
 import Input from '../../ui/input/input';
 import Button from '../../ui/button/button';
 import styles from './create-organization-modal.module.css';
-import { useOrganization } from '../../../contexts/OrganizationContext';
+import { useOrganization } from '../../../contexts/organization-context';
 
 interface CreateOrganizationModalProps {
   isOpen: boolean;

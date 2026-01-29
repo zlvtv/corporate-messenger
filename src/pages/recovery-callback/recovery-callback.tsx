@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from './RecoveryCallback.module.css';
+import styles from './recovery-callback.module.css';
 
 const RecoveryCallback: React.FC = () => {
   const navigate = useNavigate();

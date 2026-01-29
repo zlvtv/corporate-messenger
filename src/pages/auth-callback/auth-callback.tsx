@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styles from './AuthCallback.module.css';
+import styles from './auth-callback.module.css';
 
 const AuthCallback: React.FC = () => {
   const navigate = useNavigate();

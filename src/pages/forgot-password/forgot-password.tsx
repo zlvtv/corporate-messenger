@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import styles from './ForgotPassword.module.css';
+import { useAuth } from '../../contexts/auth-context';
+import styles from './forgot-password.module.css';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');

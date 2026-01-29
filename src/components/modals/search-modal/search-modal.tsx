@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useOrganization } from '../../../contexts/OrganizationContext';
-import { useUI } from '../../../contexts/UIContext';
-import { formatCount } from '../../../utils/formatCount';
+import { useOrganization } from '../../../contexts/organization-context';
+import { useUI } from '../../../contexts/ui-context';
+import { formatCount } from '../../../utils/format-сount';
 import styles from './search-modal.module.css';
 
 interface SearchModalProps {

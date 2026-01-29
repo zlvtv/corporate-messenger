@@ -1,0 +1,170 @@
+# Руководство по организации файлов стилей по БЭМ
+
+## Основные принципы БЭМ для CSS
+
+БЭМ (Блок, Элемент, Модификатор) — это методология для создания компонентных интерфейсов. Она помогает создавать переиспользуемые компоненты интерфейса и четко определять их взаимодействия.
+
+- **Блок (Block)** — логически и функционально независимый компонент интерфейса
+- **Элемент (Element)** — составная часть блока, не имеющая смысла вне его
+- **Модификатор (Modifier)** — свойство блока или элемента, изменяющее его внешний вид, поведение или состояние
+
+## Структура файлов стилей по БЭМ
+
+Для каждого компонента рекомендуется следующая структура:
+
+```
+src/components/component-name/
+├── component-name.tsx
+├── component-name.module.css
+├── __element-name/
+│   └── component-name__element-name.module.css
+├── _modifier-name/
+│   └── component-name_modifier-name_value.module.css
+└── index.ts
+```
+
+## Примеры переименования файлов стилей
+
+### Пример 1: Button (Кнопка)
+
+Вместо:
+```
+src/components/button/button.module.css
+```
+
+Рекомендуемая структура:
+```
+src/components/button/
+├── button.module.css
+├── __text/
+│   └── button__text.module.css
+├── __icon/
+│   └── button__icon.module.css
+├── _theme/
+│   ├── button_theme_primary.module.css
+│   └── button_theme_secondary.module.css
+├── _size/
+│   ├── button_size_small.module.css
+│   └── button_size_large.module.css
+└── _disabled/
+    └── button_disabled_true.module.css
+```
+
+### Пример 2: Modal (Модальное окно)
+
+Вместо:
+```
+src/components/modal/modal.module.css
+```
+
+Рекомендуемая структура:
+```
+src/components/modal/
+├── modal.module.css
+├── __overlay/
+│   └── modal__overlay.module.css
+├── __content/
+│   └── modal__content.module.css
+├── __header/
+│   └── modal__header.module.css
+├── __footer/
+│   └── modal__footer.module.css
+├── _theme/
+│   ├── modal_theme_dark.module.css
+│   └── modal_theme_light.module.css
+├── _size/
+│   ├── modal_size_small.module.css
+│   └── modal_size_large.module.css
+└── _visible/
+    └── modal_visible_true.module.css
+```
+
+### Пример 3: Task Card (Карточка задачи)
+
+Вместо:
+```
+src/components/task-card/task-card.module.css
+```
+
+Рекомендуемая структура:
+```
+src/components/task-card/
+├── task-card.module.css
+├── __title/
+│   └── task-card__title.module.css
+├── __description/
+│   └── task-card__description.module.css
+├── __status/
+│   └── task-card__status.module.css
+├── __priority/
+│   └── task-card__priority.module.css
+├── __assignee/
+│   └── task-card__assignee.module.css
+├── _size/
+│   ├── task-card_size_small.module.css
+│   └── task-card_size_large.module.css
+├── _status/
+│   ├── task-card_status_todo.module.css
+│   ├── task-card_status_in-progress.module.css
+│   └── task-card_status_done.module.css
+└── _priority/
+    ├── task-card_priority_low.module.css
+    ├── task-card_priority_medium.module.css
+    └── task-card_priority_high.module.css
+```
+
+## Правила именования файлов
+
+1. **Блоки**: `block-name.module.css`
+2. **Элементы**: `block-name__element-name.module.css` (в папке `__element-name`)
+3. **Модификаторы**: `block-name_modifier-name_value.module.css` (в папке `_modifier-name`)
+
+## Преимущества такого подхода
+
+1. **Модульность**: каждый элемент и модификатор изолирован в своем файле
+2. **Переиспользование**: модификаторы можно применять к разным блокам
+3. **Поддержка**: легче находить и изменять стили для конкретного элемента
+4. **Масштабируемость**: структура легко расширяется при добавлении новых элементов
+5. **Читаемость**: структура файлов отражает структуру компонента
+
+## Рекомендации по миграции
+
+1. Выполняйте миграцию по одному компоненту за раз
+2. Используйте git для фиксации каждого шага
+3. После переименования обновите импорты в TypeScript/JSX файлах
+4. Проверьте работоспособность компонента после изменений
+5. Используйте автоматические тесты для проверки визуального отображения
+
+## Пример обновления импортов
+
+Было:
+```tsx
+import styles from './task-card.module.css';
+```
+
+Стало:
+```tsx
+import blockStyles from './task-card.module.css';
+import titleStyles from './__title/task-card__title.module.css';
+import statusStyles from './__status/task-card__status.module.css';
+import sizeStyles from './_size/task-card_size_large.module.css';
+```
+
+## Инструменты для поддержки БЭМ
+
+1. **CSS Modules**: обеспечивает изоляцию стилей
+2. **PostCSS**: для автоматизации и проверки соответствия БЭМ
+3. **Stylelint**: с правилами для проверки именования классов
+4. **Prettier**: для форматирования файлов стилей
+
+## Типичные ошибки при внедрении БЭМ
+
+1. Создание слишком мелких блоков
+2. Нарушение иерархии (элементы блока высшего уровня)
+3. Дублирование стилей
+4. Слишком длинные имена классов
+5. Отсутствие согласованности в именовании
+
+## Заключение
+
+Переход на БЭМ-структуру файлов стилей требует времени и усилий, но в долгосрочной перспективе значительно упрощает поддержку и развитие проекта. Рекомендуется начинать с новых компонентов, а затем постепенно мигрировать существующие.

@@ -88,3 +88,28 @@
   border-radius: 4px;
   margin: 16px;
 }
+
+/* Темная тема */
+.board.dark {
+  background-color: #1e1e1e;
+  border-left-color: #333;
+}
+
+.header.dark {
+  border-bottom-color: #333;
+  background-color: #2d2d2d;
+}
+
+.header h3.dark {
+  color: #f0f0f0;
+}
+
+.tab.dark {
+  background: #3a3a3a;
+  color: #ccc;
+}
+
+.tab.active.dark {
+  background: #7f86d8;
+  color: white;
+}

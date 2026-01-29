@@ -10,7 +10,7 @@ import {
   type OrganizationWithMembers,
   type CreateOrganizationData,
 } from '../services/organizationService';
-import { useAuth } from './AuthContext';
+import { useAuth } from './auth-context';
 
 interface OrganizationContextType {
   organizations: OrganizationWithMembers[];
@@ -83,23 +83,19 @@ export const OrganizationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const orgs = await organizationService.getUserOrganizations();
       setOrganizations(orgs);
 
+      let targetOrg: OrganizationWithMembers | null = null;
       const savedOrgId = localStorage.getItem('currentOrgId');
 
       if (savedOrgId) {
-        const savedOrg = orgs.find(o => o.id === savedOrgId);
-        if (savedOrg) {
-          setCurrentOrganization(savedOrg);
-          setIsLoading(false);
-          return;
-        }
+        targetOrg = orgs.find(o => o.id === savedOrgId) || null;
       }
 
-      if (orgs.length > 0) {
-        setCurrentOrganization(orgs[0]);
-        localStorage.setItem('currentOrgId', orgs[0].id);
-      } else {
-        setCurrentOrganization(null);
+      if (!targetOrg && orgs.length > 0) {
+        targetOrg = orgs[0];
+        localStorage.setItem('currentOrgId', targetOrg.id);
       }
+
+      setCurrentOrganization(targetOrg);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка');
       setCurrentOrganization(null);

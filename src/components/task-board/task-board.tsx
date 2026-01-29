@@ -1,61 +1,90 @@
 import React, { useState, useMemo } from 'react';
 import styles from './task-board.module.css';
-import { useProject } from '../../contexts/ProjectContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useProject } from '../../contexts/project-context';
+import { useAuth } from '../../contexts/auth-context';
 import TaskCard from '../task-card/task-card';
 import Button from '../ui/button/button';
 import Select from '../ui/select/select';
 import CalendarView from '../calendar-view/calendar-view';
+import { TaskTab } from '../../types/task.types';
+
+// Компонент TaskBoard отображает доску задач с фильтрацией и вкладками
+// Важно: все хуки должны вызываться в одинаковом порядке при каждом рендере
+// Это требование React Hooks - нельзя использовать хуки внутри условий или циклов
 
 const TaskBoard: React.FC = () => {
   const { currentProject, refreshProjects } = useProject();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'my' | 'project' | 'calendar'>('my');
-
+  // Хуки должны вызываться всегда, независимо от условий
+  const [activeTab, setActiveTab] = useState<TaskTab>('project');
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
     search: '',
   });
 
-  if (!currentProject) {
-    return <div className={styles.placeholder}>Выберите проект</div>;
-  }
+  // Сохраняем результат проверки, но не возвращаем JSX
+  const hasProject = !!currentProject;
 
-  const tasks = currentProject.tasks;
+  // Используем hasProject для условной логики
+  const tasks = hasProject ? currentProject.tasks : [];
 
+  // Сначала фильтруем задачи
+  // Фильтрация задач
+  const filteredTasks = useMemo(() => {
+    if (!hasProject) return [];
+
+    let filtered = tasks;
+
+    // Фильтрация по вкладке
+    if (activeTab === 'project') {
+      filtered = tasks.filter(task => task.project_id === currentProject?.id);
+    } else if (activeTab === 'user') {
+      // Все задачи, в которых пользователь участвует
+      filtered = tasks.filter(task => task.assignees.includes(user?.id));
+    }
+    // Для 'organization' — задачи всей организации, но пока используем все из проекта
+
+    // Применяем остальные фильтры
+    return filtered.filter(task => {
+      const matchesSearch = task.title.toLowerCase().includes(filters.search.toLowerCase());
+      const matchesStatus = !filters.status || task.status === filters.status;
+      const matchesPriority = !filters.priority || task.priority === filters.priority;
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [hasProject, tasks, filters, activeTab, currentProject?.id, user?.id]);
+
+  // Затем создаем карту участников
+  // Создаем карту участников для отображения
   const assigneesMap = useMemo(() => {
+    if (!hasProject || !currentProject?.members) return {};
+    
     const map: { [key: string]: any[] } = {};
-    tasks.forEach(task => {
+    filteredTasks.forEach(task => {
       map[task.id] = currentProject.members
         .filter(m => task.assignees.includes(m.user_id))
         .map(m => m.profile);
     });
     return map;
-  }, [tasks, currentProject.members]);
+  }, [hasProject, filteredTasks, currentProject?.members]);
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(filters.search.toLowerCase());
-      const matchesStatus = !filters.status || task.status === filters.status;
-      const matchesPriority = !filters.priority || task.priority === filters.priority;
-      const isMyTask = activeTab === 'my' ? task.assignees.includes(user?.id) : true;
-      return matchesSearch && matchesStatus && matchesPriority && isMyTask;
-    });
-  }, [tasks, filters, activeTab, user?.id]);
-
+  // Определяем вкладки после всех хуков
   const tabs = [
-    { id: 'my', label: 'Мои задачи' },
-    { id: 'project', label: 'Проект' },
-    { id: 'calendar', label: 'Календарь' },
+    { id: 'project', label: 'Задачи проекта' },
+    { id: 'organization', label: 'Задачи организации' },
+    { id: 'user', label: 'Все задачи' },
   ];
+
+  // Возвращаем JSX после всех хуков и вычислений
+  // Добавляем заголовок только если есть проект
+  if (!hasProject) {
+    return <div className={styles.placeholder}>Выберите проект</div>;
+  }
 
   return (
     <div className={styles.board}>
       <div className={styles.header}>
-        <h3>Задачи</h3>
-
         <div className={styles.tabs}>
           {tabs.map(tab => (
             <button
@@ -120,6 +149,7 @@ const TaskBoard: React.FC = () => {
                 onStatusChange={async newStatus => {
                   console.log('Обновление статуса:', newStatus);
                 }}
+                tags={task.tags || []}
               />
             ))
           )}

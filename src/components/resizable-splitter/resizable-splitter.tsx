@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { useUI } from '../../contexts/UIContext';
+import { useUI } from '../../contexts/ui-context';
 import styles from './resizable-splitter.module.css';
 
 const ResizableSplitter: React.FC = () => {

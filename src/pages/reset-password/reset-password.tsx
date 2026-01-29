@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAuth, confirmPasswordReset } from 'firebase/auth';
-import styles from './ResetPassword.module.css';
+import styles from './reset-password.module.css';
 
 const ResetPassword: React.FC = () => {
   const [password, setPassword] = useState('');

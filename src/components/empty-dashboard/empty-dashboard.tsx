@@ -1,7 +1,7 @@
 import React from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/auth-context';
 import { useNavigate } from 'react-router-dom';
-import { useUI } from '../../contexts/UIContext';
+import { useUI } from '../../contexts/ui-context';
 import styles from './EmptyDashboard.module.css';
 
 const EmptyDashboard: React.FC = () => {

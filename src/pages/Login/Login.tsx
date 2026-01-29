@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import styles from './Login.module.css';
+import { useAuth } from '../../contexts/auth-context';
+import styles from './login.module.css';
 
 interface LocationState {
   fromInvite?: string;

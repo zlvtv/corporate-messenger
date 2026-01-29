@@ -1,4 +1,4 @@
-import { formatCount } from './formatCount';
+import { formatCount } from './format-сount';
 
 describe('formatCount', () => {
   test('pluralizes correctly in Russian', () => {

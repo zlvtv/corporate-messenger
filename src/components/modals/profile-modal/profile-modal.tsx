@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
-import { useUI } from '../../../contexts/UIContext';
+import { useAuth } from '../../../contexts/auth-context';
+import { useUI } from '../../../contexts/ui-context';
 import styles from './profile-modal.module.css';
 
 const ProfileModal: React.FC = () => {

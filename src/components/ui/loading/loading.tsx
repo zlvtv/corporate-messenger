@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './LoadingState.module.css';
+import styles from './loading.module.css';
 
 const LoadingState: React.FC<{ message?: string }> = ({ message = 'Загрузка...' }) => {
   return (

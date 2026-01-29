@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { useOrganization } from '../../../contexts/OrganizationContext';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useOrganization } from '../../../contexts/organization-context';
+import { useAuth } from '../../../contexts/auth-context';
 import Button from '../../ui/button/button';
 import Input from '../../ui/input/input';
 import Toast from '../../ui/toast/Toast';

@@ -5,8 +5,8 @@ import React, {
   useEffect,
   useCallback,
 } from 'react';
-import { useOrganization } from './OrganizationContext';
-import { useAuth } from './AuthContext';
+import { useOrganization } from './organization-context';
+import { useAuth } from './auth-context';
 import { db } from '../lib/firebase';
 import {
   collection,

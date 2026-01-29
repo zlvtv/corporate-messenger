@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useOrganization } from '../../contexts/OrganizationContext';
+import { useOrganization } from '../../contexts/organization-context';
 import SearchModal from '../../components/modals/search-modal/search-modal';
 import CreateOrganizationModal from '../../components/modals/create-organization-modal/create-organization-modal';
 import styles from './org-icon-panel.module.css';

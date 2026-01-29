@@ -1,0 +1,101 @@
+# Предлагаемое переименование файлов по БЭМ
+
+## Компоненты в src/components
+
+### Carousel
+- src/components/Carousel/Carousel.tsx → src/components/carousel/carousel.tsx
+- src/components/Slide/Slide.tsx → src/components/slide/slide.tsx
+
+### Calendar View
+- src/components/calendar-view/calendar-view.tsx → src/components/calendar-view/calendar-view.tsx (уже соответствует)
+- src/components/calendar-view/calendar-view.module.css → src/components/calendar-view/__header/calendar-view__header.module.css, src/components/calendar-view/__days/calendar-view__days.module.css и т.д.
+
+### Chat Header
+- src/components/chat-header/chat-header.tsx → src/components/chat-header/chat-header.tsx (уже соответствует)
+- src/components/chat-header/chat-header.module.css → src/components/chat-header/__title/chat-header__title.module.css, src/components/chat-header/__actions/chat-header__actions.module.css и т.д.
+
+### Empty Dashboard
+- src/components/empty-dashboard/EmptyDashboard.tsx → src/components/empty-dashboard/empty-dashboard.tsx
+- src/components/empty-dashboard/EmptyDashboard.module.css → src/components/empty-dashboard/__content/empty-dashboard__content.module.css
+
+### Main Header
+- src/components/main-header/main-header.tsx → src/components/main-header/main-header.tsx (уже соответствует)
+- src/components/main-header/main-header.module.css → src/components/main-header/__logo/main-header__logo.module.css, src/components/main-header/__nav/main-header__nav.module.css, src/components/main-header/_theme/main-header_theme_dark.module.css
+
+### Modals
+- src/components/modals/confirm-modal/confirm-modal.tsx → src/components/modal/__confirm/modal__confirm.tsx
+- src/components/modals/create-organization-modal/create-organization-modal.tsx → src/components/modal/__create-org/modal__create-org.tsx
+- src/components/modals/create-task-modal/create-task-modal.tsx → src/components/modal/__create-task/modal__create-task.tsx
+- src/components/modals/invite-modal/invite-modal.tsx → src/components/modal/__invite/modal__invite.tsx
+- src/components/modals/org-info-modal/org-info-modal.tsx → src/components/modal/__org-info/modal__org-info.tsx
+- src/components/modals/profile-modal/profile-modal.tsx → src/components/modal/__profile/modal__profile.tsx
+- src/components/modals/search-modal/search-modal.tsx → src/components/modal/__search/modal__search.tsx
+
+### Org Icon Panel
+- src/components/org-icon-panel/org-icon-panel.tsx → src/components/org-icon-panel/org-icon-panel.tsx (уже соответствует)
+- src/components/org-icon-panel/org-icon-panel.module.css → src/components/org-icon-panel/__list/org-icon-panel__list.module.css, src/components/org-icon-panel/__item/org-icon-panel__item.module.css, src/components/org-icon-panel/_size/org-icon-panel_size_small.module.css
+
+### Project Chat
+- src/components/project-chat/project-chat.tsx → src/components/project-chat/project-chat.tsx (уже соответствует)
+- src/components/project-chat/project-chat.module.css → src/components/project-chat/__messages/project-chat__messages.module.css, src/components/project-chat/__input/project-chat__input.module.css
+
+### Resizable Splitter
+- src/components/resizable-splitter/resizable-splitter.tsx → src/components/resizable-splitter/resizable-splitter.tsx (уже соответствует)
+- src/components/resizable-splitter/resizable-splitter.module.css → src/components/resizable-splitter/__pane/resizable-splitter__pane.module.css, src/components/resizable-splitter/_direction/resizable-splitter_direction_vertical.module.css
+
+### Settings Panel
+- src/components/settings-panel/settings-panel.tsx → src/components/settings-panel/settings-panel.tsx (уже соответствует)
+- src/components/settings-panel/settings-panel.module.css → src/components/settings-panel/__section/settings-panel__section.module.css, src/components/settings-panel/_theme/settings-panel_theme_dark.module.css
+
+### Task Board
+- src/components/task-board/task-board.tsx → src/components/task-board/task-board.tsx (уже соответствует)
+- src/components/task-board/task-board.module.css → src/components/task-board/__column/task-board__column.module.css, src/components/task-board/_layout/task-board_layout_kanban.module.css
+
+### Task Card
+- src/components/task-card/task-card.tsx → src/components/task-card/task-card.tsx (уже соответствует)
+- src/components/task-card/task-card.module.css → src/components/task-card/__title/task-card__title.module.css, src/components/task-card/__status/task-card__status.module.css, src/components/task-card/_size/task-card_size_large.module.css
+
+### UI Компоненты
+- src/components/ui/button/button.tsx → src/components/button/button.tsx
+- src/components/ui/button/button.module.css → src/components/button/__text/button__text.module.css, src/components/button/_theme/button_theme_primary.module.css
+- src/components/ui/input/input.tsx → src/components/input/input.tsx
+- src/components/ui/input/input.module.css → src/components/input/__field/input__field.module.css, src/components/input/_size/input_size_large.module.css
+- src/components/ui/select/select.tsx → src/components/select/select.tsx
+- src/components/ui/select/select.module.css → src/components/select/__option/select__option.module.css, src/components/select/_size/select_size_medium.module.css
+- src/components/ui/modal/modal.tsx → src/components/modal/modal.tsx
+- src/components/ui/modal/modal.module.css → src/components/modal/__overlay/modal__overlay.module.css, src/components/modal/_visible/modal_visible_true.module.css
+- src/components/ui/toast/Toast.tsx → src/components/toast/toast.tsx
+- src/components/ui/toast/Toast.module.css → src/components/toast/__message/toast__message.module.css, src/components/toast/_type/toast_type_success.module.css
+- src/components/ui/loading/LoadingState.tsx → src/components/loading/loading.tsx
+- src/components/ui/loading/LoadingState.module.css → src/components/loading/__spinner/loading__spinner.module.css
+
+## Страницы в src/pages
+- src/pages/Dashboard/Dashboard.tsx → src/pages/dashboard/dashboard.tsx
+- src/pages/Login/Login.tsx → src/pages/login/login.tsx
+- src/pages/SignUp/SignUp.tsx → src/pages/signup/signup.tsx
+- src/pages/ForgotPassword/ForgotPassword.tsx → src/pages/forgot-password/forgot-password.tsx
+- src/pages/ResetPassword/ResetPassword.tsx → src/pages/reset-password/reset-password.tsx
+- src/pages/Confirm/Confirm.tsx → src/pages/confirm/confirm.tsx
+- src/pages/Invite/Invite.tsx → src/pages/invite/invite.tsx
+- src/pages/InvitePage/InvitePage.tsx → src/pages/invite-page/invite-page.tsx
+- src/pages/Landing/Landing.tsx → src/pages/landing/landing.tsx
+- src/pages/AuthCallback/AuthCallback.tsx → src/pages/auth-callback/auth-callback.tsx
+- src/pages/RecoveryCallback/RecoveryCallback.tsx → src/pages/recovery-callback/recovery-callback.tsx
+
+## Стили
+- src/styles/globals.css → src/styles/globals.css (оставить без изменений)
+- src/styles/variables.css → src/styles/variables.css (оставить без изменений)
+- src/styles/mixins.css → src/styles/mixins.css (оставить без изменений)
+
+## Контексты
+- src/contexts/AuthContext.tsx → src/contexts/auth/auth-context.tsx
+- src/contexts/OrganizationContext.tsx → src/contexts/organization/organization-context.tsx
+- src/contexts/ProjectContext.tsx → src/contexts/project/project-context.tsx
+- src/contexts/UIContext.tsx → src/contexts/ui/ui-context.tsx
+
+## Важные замечания
+1. После переименования необходимо обновить все импорты в проекте.
+2. Рекомендуется выполнять переименование по одному компоненту с последующим тестированием.
+3. Используйте систему контроля версий (git) для фиксации изменений после каждого успешного шага.
+4. Некоторые компоненты уже соответствуют БЭМ-названиям и не требуют изменений.
+5. Для сложных компонентов рекомендуется разбить CSS на элементы (__element) и модификаторы (_modifier).

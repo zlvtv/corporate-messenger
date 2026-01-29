@@ -1,6 +1,6 @@
 import React from 'react';
-import { useOrganization } from '../../contexts/OrganizationContext';
-import { useUI } from '../../contexts/UIContext';
+import { useOrganization } from '../../contexts/organization-context';
+import { useUI } from '../../contexts/ui-context';
 import OrgInfoModal from '../../components/modals/org-info-modal/org-info-modal';
 import styles from './main-header.module.css';
 import { createPortal } from 'react-dom';

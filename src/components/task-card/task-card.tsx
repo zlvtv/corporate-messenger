@@ -8,6 +8,7 @@ interface TaskCardProps {
   task: any;
   assignees: any[];
   onStatusChange: (status: 'todo' | 'in_progress' | 'done') => void;
+  tags?: string[];
 }
 
 const TaskCard: React.FC<TaskCardProps> = ({ task, assignees, onStatusChange }) => {
@@ -56,6 +57,20 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, assignees, onStatusChange }) 
     onStatusChange(nextStatus[task.status]);
   };
 
+  // Отображение тегов
+  const renderTags = () => {
+    if (!tags || tags.length === 0) return null;
+    return (
+      <div className={styles.tags}>
+        {tags.map((tag, index) => (
+          <span key={index} className={styles.tag}>
+            #{tag}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className={`${styles.card} ${task.status === 'done' ? styles.done : ''}`}>
       <div className={styles.header}>
@@ -83,6 +98,8 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, assignees, onStatusChange }) 
           dangerouslySetInnerHTML={renderDescription(task.description)}
         />
       )}
+
+      {isExpanded && renderTags()}
 
       <div className={styles.footer}>
         <div className={styles.dueDate}>

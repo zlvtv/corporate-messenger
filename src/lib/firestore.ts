@@ -13,6 +13,7 @@ import {
   onSnapshot,
   getDocsFromServer,
   getDocFromServer,
+  writeBatch
 } from 'firebase/firestore';
 
 const buildUserFromSnapshot = (userSnap: any, userId: string) => {
@@ -127,14 +128,7 @@ export const getMessages = async (projectId: string) => {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
-export const createTask = async (taskData: {
-  project_id: string;
-  title: string;
-  description?: string;
-  due_date?: string;
-  source_message_id?: string;
-  assignee_ids: string[];
-}) => {
+export const createTask = async (taskData: CreateTaskData) => {
   const docRef = await addDoc(collection(db, 'tasks'), {
     ...taskData,
     status: 'todo',
@@ -143,7 +137,7 @@ export const createTask = async (taskData: {
     created_by: taskData.assignee_ids[0],
   });
 
-  return { id: docRef.id, ...taskData, status: 'todo', priority: 'medium', created_at: new Date().toISOString() };
+  return { id: docRef.id, ...taskData, status: 'todo', priority: 'medium', created_at: new Date().toISOString(), tags: taskData.tags || [] };
 };
 
 export const sendMessage = async (projectId: string, text: string, senderId: string) => {
@@ -155,4 +149,8 @@ export const sendMessage = async (projectId: string, text: string, senderId: str
   });
 
   return { id: docRef.id, project_id: projectId, text, sender_id: senderId, created_at: new Date().toISOString() };
+};
+
+export const deleteMessage = async (messageId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'messages', messageId));
 };

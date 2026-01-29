@@ -61,7 +61,7 @@
   transition: width 0.2s ease;
   overflow: hidden;
   display: flex;
-  flex-direction: column; /* Чтобы ProjectChat заполнил всю высоту */
+  flex-direction: column; 
 }
 
 .dashboard__board {
@@ -91,13 +91,14 @@
   border-radius: inherit;
 }
 
-.loading {
+.loading,
+.dashboard__loading {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--color-surface);
+  color: var(--color-text, #1e293b);
   font-size: 1.125rem;
   font-weight: 500;
   text-align: center;
