@@ -9,7 +9,7 @@ import TaskBoard from '../../components/task-board/task-board';
 import ResizableSplitter from '../../components/resizable-splitter/resizable-splitter';
 import CreateOrganizationModal from '../../components/modals/create-organization-modal/create-organization-modal';
 import LoadingState from '../../components/ui/loading/LoadingState';
-import styles from './dashboard.module.css';
+import styles from './Dashboard.module.css';
 import { useUI } from '../../contexts/UIContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { useProject } from '../../contexts/ProjectContext';

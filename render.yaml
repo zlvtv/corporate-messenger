@@ -1,2 +1,0 @@
-buildCommand: "pnpm install && pnpm run build"
-publishDirectory: "dist"
