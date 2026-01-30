@@ -57,8 +57,8 @@
   margin-top: 4px;
   overflow-y: auto;
   scrollbar-color: var(--color-primary) var(--color-surface);
-  scrollbar-width: none; /* 🔥 Firefox: скрывает скроллбар */
-  -ms-overflow-style: none; /* 🔥 IE/Edge */
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
   flex-shrink: 0;
 }
 

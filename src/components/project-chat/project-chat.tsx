@@ -5,7 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import DOMPurify from 'dompurify';
 import CreateTaskModal from '../../components/modals/create-task-modal/create-task-modal';
-import { getMessages, sendMessage, subscribeToMessages } from '../../lib/firestore';
+import ConfirmModal from '../../components/modals/confirm-modal/confirm-modal';
+import { getMessages, sendMessage, subscribeToMessages, deleteMessage } from '../../lib/firestore';
 import { encryptMessage, decryptMessage } from '../../lib/crypto';
 
 const ProjectChat: React.FC = () => {
@@ -36,6 +37,19 @@ const ProjectChat: React.FC = () => {
   });
 
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  const canDeleteMessage = (message: any) => {
+    if (!user || !currentOrganization) return false;
+    
+    if (currentOrganization.organization_members.some(m => m.user_id === user.id && m.role === 'member')) {
+      return message.sender_id === user.id;
+    }
+    
+    return currentOrganization.organization_members.some(
+      m => m.user_id === user.id && (m.role === 'admin' || m.role === 'owner')
+    );
+  };
 
   useEffect(() => {
     if (!currentProject?.id) return;
@@ -229,7 +243,7 @@ const ProjectChat: React.FC = () => {
                   setContextMenu({ show: false, x: 0, y: 0, message: null, type: 'message' });
                 }}
               >
-                📋 Копировать
+                Копировать
               </button>
               <button
                 className={styles.menuItem}
@@ -240,15 +254,15 @@ const ProjectChat: React.FC = () => {
               >
                 Сделать задачей
               </button>
-              {contextMenu.message.sender_id === user?.id && (
+              {canDeleteMessage(contextMenu.message) && (
                 <button
                   className={styles.menuItem}
-                  onClick={() => {
-                    setContextMenu({ show: false, x: 0, y: 0, message: null, type: 'message' });
-                    alert('Удаление сообщения пока не реализовано');
-                  }}
+                  onClick={(e) => {
+                  e.stopPropagation();
+                  setIsConfirmModalOpen(true);
+                }}
                 >
-                  🗑️ Удалить
+                  Удалить
                 </button>
               )}
             </>
@@ -261,6 +275,30 @@ const ProjectChat: React.FC = () => {
             onClose={() => setIsTaskModalOpen(false)}
             sourceMessageId={contextMenu.message?.id}
             initialContent={contextMenu.message?.text}
+          />
+        )}
+
+        {isConfirmModalOpen && (
+          <ConfirmModal
+            isOpen={isConfirmModalOpen}
+            onClose={() => setIsConfirmModalOpen(false)}
+            onConfirm={async () => {
+              if (!contextMenu.message?.id) {
+                console.error('Нет сообщения для удаления');
+                setIsConfirmModalOpen(false);
+                return;
+              }
+              try {
+                await deleteMessage(contextMenu.message.id);
+                setIsConfirmModalOpen(false);
+              } catch (err) {
+                console.error('Ошибка при удалении сообщения:', err);
+                alert('Не удалось удалить сообщение');
+              }
+            }}
+            message="Вы уверены, что хотите удалить это сообщение?"
+            confirmText="Удалить"
+            cancelText="Отмена"
           />
         )}
       </div>

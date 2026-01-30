@@ -6,56 +6,64 @@ import TaskCard from '../task-card/task-card';
 import Button from '../ui/button/button';
 import Select from '../ui/select/select';
 import CalendarView from '../calendar-view/calendar-view';
-
+import { TaskTab } from '../../types/task.types';
 const TaskBoard: React.FC = () => {
   const { currentProject, refreshProjects } = useProject();
   const { user } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'my' | 'project' | 'calendar'>('my');
-
+  const [activeTab, setActiveTab] = useState<TaskTab>('project');
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
     search: '',
   });
 
-  if (!currentProject) {
-    return <div className={styles.placeholder}>Выберите проект</div>;
-  }
+  const hasProject = !!currentProject;
 
-  const tasks = currentProject.tasks;
+  const tasks = hasProject ? currentProject.tasks : [];
+
+  const filteredTasks = useMemo(() => {
+    if (!hasProject) return [];
+
+    let filtered = tasks;
+    if (activeTab === 'project') {
+      filtered = tasks.filter(task => task.project_id === currentProject?.id);
+    } else if (activeTab === 'user') {
+      filtered = tasks.filter(task => task.assignees.includes(user?.id));
+    }
+    return filtered.filter(task => {
+      const matchesSearch = task.title.toLowerCase().includes(filters.search.toLowerCase());
+      const matchesStatus = !filters.status || task.status === filters.status;
+      const matchesPriority = !filters.priority || task.priority === filters.priority;
+      return matchesSearch && matchesStatus && matchesPriority;
+    });
+  }, [hasProject, tasks, filters, activeTab, currentProject?.id, user?.id]);
 
   const assigneesMap = useMemo(() => {
+    if (!hasProject || !currentProject?.members) return {};
+    
     const map: { [key: string]: any[] } = {};
-    tasks.forEach(task => {
+    filteredTasks.forEach(task => {
       map[task.id] = currentProject.members
         .filter(m => task.assignees.includes(m.user_id))
         .map(m => m.profile);
     });
     return map;
-  }, [tasks, currentProject.members]);
-
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(filters.search.toLowerCase());
-      const matchesStatus = !filters.status || task.status === filters.status;
-      const matchesPriority = !filters.priority || task.priority === filters.priority;
-      const isMyTask = activeTab === 'my' ? task.assignees.includes(user?.id) : true;
-      return matchesSearch && matchesStatus && matchesPriority && isMyTask;
-    });
-  }, [tasks, filters, activeTab, user?.id]);
+  }, [hasProject, filteredTasks, currentProject?.members]);
 
   const tabs = [
-    { id: 'my', label: 'Мои задачи' },
-    { id: 'project', label: 'Проект' },
-    { id: 'calendar', label: 'Календарь' },
+    { id: 'project', label: 'Задачи проекта' },
+    { id: 'organization', label: 'Задачи организации' },
+    { id: 'user', label: 'Все задачи' },
   ];
+
+  if (!hasProject) {
+    return <div className={styles.placeholder}>Выберите проект</div>;
+  }
 
   return (
     <div className={styles.board}>
       <div className={styles.header}>
-        <h3>Задачи</h3>
-
         <div className={styles.tabs}>
           {tabs.map(tab => (
             <button
@@ -120,6 +128,7 @@ const TaskBoard: React.FC = () => {
                 onStatusChange={async newStatus => {
                   console.log('Обновление статуса:', newStatus);
                 }}
+                tags={task.tags || []}
               />
             ))
           )}

@@ -29,7 +29,6 @@
   color: var(--color-text-light, #94a3b8);
 }
 
-/* Стили для автозаполнения браузера */
 .input:-webkit-autofill {
   -webkit-box-shadow: 0 0 0px 1000px var(--color-surface, #f8fafc) inset;
   -webkit-text-fill-color: var(--color-text, #1e293b);
@@ -43,13 +42,11 @@
     0 0 0px 1000px var(--color-surface, #f8fafc) inset;
 }
 
-/* Размеры */
 .input--small {
   padding: 6px 8px;
   font-size: 12px;
 }
 
-/* Ошибки */
 .input--error {
   border-color: var(--color-error, #dc2626);
 }

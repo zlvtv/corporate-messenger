@@ -34,6 +34,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState<string>('');
   const [assignees, setAssignees] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
   const [isAssignAll, setIsAssignAll] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +85,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         due_date: dueDate || undefined,
         source_message_id: sourceMessageId,
         assignee_ids: assigneeList,
+        tags: tags,
       });
 
       await refreshProjects?.();
@@ -178,6 +181,43 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
                 ))}
               </div>
             )}
+          </div>
+
+          {error && <div className={styles.error}>{error}</div>}
+
+            <div className={styles.field}>
+            <label>Теги</label>
+            <div className={styles.tagInputContainer}>
+              <Input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="Введите теги через #"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const tag = tagInput.trim().replace(/^#/, '');
+                    if (tag && !tags.includes(tag)) {
+                      setTags([...tags, tag]);
+                    }
+                    setTagInput('');
+                  }
+                }}
+              />
+              <div className={styles.tagList}>
+                {tags.map((tag, index) => (
+                  <span key={index} className={styles.tag}>
+                    #{tag}
+                    <button
+                      type="button"
+                      onClick={() => setTags(tags.filter(t => t !== tag))}
+                      className={styles.removeTag}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
           {error && <div className={styles.error}>{error}</div>}

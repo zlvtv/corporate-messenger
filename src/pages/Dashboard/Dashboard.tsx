@@ -5,10 +5,11 @@ import SettingsPanel from '../../components/settings-panel/settings-panel';
 import MainHeader from '../../components/main-header/main-header';
 import ChatHeader from '../../components/chat-header/chat-header';
 import ProjectChat from '../../components/project-chat/project-chat';
-import EmptyDashboard from '../../components/empty-dashboard/EmptyDashboard';
+import TaskBoard from '../../components/task-board/task-board';
 import ResizableSplitter from '../../components/resizable-splitter/resizable-splitter';
 import CreateOrganizationModal from '../../components/modals/create-organization-modal/create-organization-modal';
-import styles from './Dashboard.module.css';
+import LoadingState from '../../components/ui/loading/LoadingState';
+import styles from './dashboard.module.css';
 import { useUI } from '../../contexts/UIContext';
 import { useOrganization } from '../../contexts/OrganizationContext';
 import { useProject } from '../../contexts/ProjectContext';
@@ -36,18 +37,11 @@ const Dashboard: React.FC = () => {
   }, [isCreateOrgModalOpen, openCreateOrgModal, location.state]);
 
   if (orgLoading) {
-    return <div className={styles.loading}>Загрузка организаций...</div>;
+    return <LoadingState message="Загрузка..." />;
   }
 
   if (!orgLoading && organizations.length === 0 && !isCreateOrgModalOpen) {
-    return <EmptyDashboard />;
-  }
-
-  if (!currentOrganization && organizations.length > 0) {
-    const firstOrg = organizations[0];
-    localStorage.setItem('currentOrgId', firstOrg.id);
-    window.location.reload(); 
-    return <div className={styles.loading}>Инициализация организации...</div>;
+    return <LoadingState message="Подготовка рабочего пространства..." />;
   }
 
   return (
@@ -64,10 +58,13 @@ const Dashboard: React.FC = () => {
         {!isBoardFullscreen ? (
           <div className={styles['dashboard__content']}>
             <div className={styles['dashboard__chat']} style={{ width: `${chatWidth}px` }}>
-              {currentProject ? <ProjectChat /> : <div className={styles['chat-placeholder']}>Выберите проект</div>}
+              {currentProject ? <ProjectChat /> : <LoadingState message="Загрузка чата..." />}
+            
             </div>
             <ResizableSplitter />
             <div className={styles['dashboard__board']}>
+              {currentProject ? <TaskBoard /> : <LoadingState message="Загрузка панели задач..." />}
+            
             </div>
           </div>
         ) : (
