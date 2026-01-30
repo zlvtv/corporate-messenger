@@ -37,6 +37,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [isAssignAll, setIsAssignAll] = useState(false);
+  const [priority, setPriority] = useState<string>('medium');
+  const [status, setStatus] = useState<string>('todo');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +88,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         source_message_id: sourceMessageId,
         assignee_ids: assigneeList,
         tags: tags,
+        priority,
+        status,
       });
 
       await refreshProjects?.();
@@ -220,8 +224,35 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             </div>
           </div>
 
-          {error && <div className={styles.error}>{error}</div>}
+          <div className={styles.field}>
+            <label>Приоритет</label>
+            <Select
+              value={priority}
+              onChange={value => setPriority(value as string)}
+              options={[
+                { value: 'low', label: 'Низкий' },
+                { value: 'medium', label: 'Средний' },
+                { value: 'high', label: 'Высокий' },
+              ]}
+              placeholder="Выберите приоритет"
+            />
+          </div>
 
+          <div className={styles.field}>
+            <label>Статус</label>
+            <Select
+              value={status}
+              onChange={value => setStatus(value as string)}
+              options={[
+                { value: 'todo', label: 'Не начата' },
+                { value: 'in_progress', label: 'В процессе' },
+                { value: 'done', label: 'Готово' },
+              ]}
+              placeholder="Выберите статус"
+            />
+          </div>
+
+          {error && <div className={styles.error}>{error}</div>}
           <div className={styles.actions}>
             <Button type="button" variant="secondary" onClick={onClose} disabled={isLoading}>
               Отмена

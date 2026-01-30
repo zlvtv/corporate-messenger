@@ -9,9 +9,11 @@ interface TaskCardProps {
   assignees: any[];
   onStatusChange: (status: 'todo' | 'in_progress' | 'done') => void;
   tags?: string[];
+  priority?: 'low' | 'medium' | 'high';
+  dueDate?: string | null;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, assignees, onStatusChange }) => {
+const TaskCard: React.FC<TaskCardProps> = ({ task, assignees, onStatusChange, priority, dueDate }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const formatDate = (dateString: string | null) => {
@@ -53,8 +55,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, assignees, onStatusChange }) 
       todo: 'in_progress',
       in_progress: 'done',
       done: 'todo',
-    };
-    onStatusChange(nextStatus[task.status]);
+    };    onStatusChange(nextStatus[task.status]);
   };
 
   const renderTags = () => {
@@ -83,7 +84,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, assignees, onStatusChange }) 
 
         <div
           className={styles.statusBadge}
-          style={{ backgroundColor: getPriorityColor(task.priority) }}
+          style={{ backgroundColor: getPriorityColor(priority || task.priority) }}
           onClick={toggleStatus}
           title="Нажмите, чтобы изменить статус"
         >
@@ -102,7 +103,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, assignees, onStatusChange }) 
 
       <div className={styles.footer}>
         <div className={styles.dueDate}>
-          📅 {formatDate(task.due_date)}
+          📅 {formatDate(dueDate || task.due_date)}
         </div>
 
         <div className={styles.assignees}>

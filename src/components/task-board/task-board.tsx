@@ -129,6 +129,8 @@ const TaskBoard: React.FC = () => {
                   console.log('Обновление статуса:', newStatus);
                 }}
                 tags={task.tags || []}
+                priority={task.priority}
+                dueDate={task.due_date}
               />
             ))
           )}
